@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="mn" data-theme="night">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terminal K · Хулан — Full-stack хөгжүүлэгч</title>
+  <meta name="description" content="Хулангийн портфолио — нисэх буудлын терминал хэлбэрээр. Бүтээлүүд, ур чадвар, холбоо барих." />
+  <meta name="theme-color" content="#0c0d10" />
+  <meta property="og:title" content="Terminal K · Хулан" />
+  <meta property="og:description" content="Нисэх буудал маягийн хувийн портфолио." />
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a class="skip" href="#works">Бүтээлүүд рүү алгасах</a>
+
+  <!-- ============ ДЭЭД МӨР: лого, навигаци (хаалганы тэмдэг), цаг ============ -->
+  <header class="topbar">
+    <a href="#hero" class="brand" id="logo" aria-label="Terminal K — нүүр">
+      <img src="assets/logo.svg" alt="" width="34" height="34" />
+      <span>Terminal&nbsp;K</span>
+    </a>
+
+    <nav class="signs" aria-label="Үндсэн цэс">
+      <a href="#hero"><b>A</b><span>Нүүр</span></a>
+      <a href="#about"><b>B</b><span>Миний тухай</span></a>
+      <a href="#works"><b>C</b><span>Бүтээлүүд</span></a>
+      <a href="#contact"><b>D</b><span>Холбоо барих</span></a>
+    </nav>
+
+    <div class="tools">
+      <span class="clock" aria-label="Улаанбаатарын цаг"><small>ULN</small> <time id="clock">--:--</time></span>
+      <button class="icon-btn" id="soundBtn" aria-pressed="false" title="Дуу асаах/унтраах">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path class="mute" d="M16 9l5 6M21 9l-5 6"/></svg>
+        <span class="sr">Дуу</span>
+      </button>
+      <button class="icon-btn" id="themeBtn" title="Өдөр / Шөнийн нислэг">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="moon" d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/><g class="sun"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></svg>
+        <span class="sr">Горим</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Зарлалын мөр (PA announcement) -->
+  <div class="pa" id="pa" role="status" aria-live="polite">
+    <span class="pa-icon" aria-hidden="true">◉</span><span id="paText"></span>
+  </div>
+
+  <main>
+    <!-- ============ A · ТАНИЛЦУУЛГА ============ -->
+    <section id="hero" class="hero" data-gate="hero">
+      <p class="eyebrow">Хаалга A · Ирэх заал</p>
+      <div class="board-wrap">
+        <div class="board-head"><span>ЗОРЧИГЧ</span><span>ЧИГЛЭЛ</span></div>
+        <div class="flapboard" id="heroBoard" aria-hidden="true"></div>
+      </div>
+      <h1 class="sr" id="heroTitle"></h1>
+      <p class="tagline" id="tagline"></p>
+      <div class="cta">
+        <a href="#works" class="btn btn-sign">Нислэгийн хуваарь харах <span aria-hidden="true">→</span></a>
+        <a href="#contact" class="btn btn-ghost">Check-in хийх</a>
+      </div>
+      <div class="runway" aria-hidden="true">
+        <span class="plane" id="heroPlane">
+          <svg viewBox="0 0 64 24"><path d="M2 13l9-1 14-9h6l-8 9 18-1 6-5h4l-3 7 3 7h-4l-6-5-18-1 8 9h-6l-14-9-9-1z"/></svg>
+        </span>
+      </div>
+    </section>
+
+    <!-- ============ B · МИНИЙ ТУХАЙ (Паспорт) ============ -->
+    <section id="about" class="about" data-gate="about">
+      <header class="sec-head">
+        <p class="eyebrow">Хаалга B · Паспорт шалгалт</p>
+        <h2>Миний тухай</h2>
+      </header>
+
+      <div class="passport" id="passport">
+        <!-- зүүн хуудас: мэдээлэл -->
+        <article class="page page-id">
+          <div class="page-top"><span>ПАСПОРТ · PASSPORT</span><span>MNG</span></div>
+          <div class="id-grid">
+            <div class="photo" aria-hidden="true">
+              <img src="assets/avatar.svg" alt="" />
+            </div>
+            <dl class="fields" id="fields"></dl>
+          </div>
+          <div class="bio" id="bio"></div>
+          <p class="mrz" id="mrz" aria-hidden="true"></p>
+        </article>
+
+        <!-- баруун хуудас: виз тамга = ур чадвар -->
+        <article class="page page-visa">
+          <div class="page-top"><span>ВИЗ · ЭЗЭМШСЭН УР ЧАДВАР</span><span>3</span></div>
+          <ul class="stamps" id="stamps"></ul>
+          <p class="stamp-note" id="stampNote">Тамга дээр дарж тухайн технологиор юу хийснийг үзээрэй.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ C · БҮТЭЭЛҮҮД (Нислэгийн самбар) ============ -->
+    <section id="works" class="works" data-gate="works">
+      <header class="sec-head">
+        <p class="eyebrow">Хаалга C · Явах нислэгүүд</p>
+        <h2>Бүтээлүүд</h2>
+        <p class="sec-sub">Мөр дээр дарж «суух тасалбар»-ыг нээнэ.</p>
+      </header>
+
+      <div class="departures">
+        <div class="dep-title">
+          <span class="dep-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M2 19h20M3.5 13.5l3 .5 4-2.5-6-5 2-1 8 3.5 4.5-2.5a1.8 1.8 0 0 1 2 3L9 16l-4-.5z"/></svg>
+          </span>
+          <span>ЯВАХ · DEPARTURES</span>
+          <time id="depClock"></time>
+        </div>
+        <div class="dep-cols" aria-hidden="true">
+          <span>ХУГАЦАА</span><span>НИСЛЭГ</span><span>ЧИГЛЭЛ</span><span>ХААЛГА</span><span>ТӨЛӨВ</span>
+        </div>
+        <ul class="dep-rows" id="depRows"></ul>
+      </div>
+    </section>
+
+    <!-- ============ D · ХОЛБОО БАРИХ (Check-in) ============ -->
+    <section id="contact" class="contact" data-gate="contact">
+      <header class="sec-head">
+        <p class="eyebrow">Хаалга D · Check-in ширээ</p>
+        <h2>Холбоо барих</h2>
+        <p class="sec-sub">Ажлын санал, дадлага, хамтын төсөл — тасалбараа бөглөөд хэвлээрэй.</p>
+      </header>
+
+      <div class="checkin">
+        <form class="desk" id="checkinForm" novalidate>
+          <label>Зорчигчийн нэр
+            <input name="name" id="fName" autocomplete="name" required maxlength="40" placeholder="Таны нэр" />
+          </label>
+          <label>Аяллын зорилго
+            <select name="purpose" id="fPurpose">
+              <option>Ажлын санал</option>
+              <option>Дадлагын санал</option>
+              <option>Хамтын төсөл</option>
+              <option>Зүгээр л мэндчилгээ</option>
+            </select>
+          </label>
+          <label>Мессеж
+            <textarea name="message" id="fMsg" rows="4" required maxlength="600" placeholder="Сайн байна уу, Хулан…"></textarea>
+          </label>
+          <p class="form-err" id="formErr" role="alert"></p>
+          <button class="btn btn-sign" type="submit">Тасалбар хэвлэх <span aria-hidden="true">⎙</span></button>
+        </form>
+
+        <div class="printer">
+          <div class="slot" aria-hidden="true"></div>
+          <p class="printer-hint" id="printerHint">⎙ Таны суух тасалбар энд хэвлэгдэнэ.<br>Зүүн талын маягтыг бөглөөрэй.</p>
+          <div class="ticket" id="ticket" aria-live="polite">
+            <div class="t-main">
+              <div class="t-row"><span class="t-air"><img src="assets/logo.svg" alt="" width="20" height="20" /> TERMINAL K</span><span>BOARDING PASS</span></div>
+              <div class="t-route">
+                <div><small>ХААНААС</small><b id="tFrom">YOU</b></div>
+                <span class="t-plane" aria-hidden="true">✈</span>
+                <div><small>ХААШАА</small><b>ХУЛАН</b></div>
+              </div>
+              <div class="t-grid">
+                <div><small>ЗОРЧИГЧ</small><span id="tName">—</span></div>
+                <div><small>ЗОРИЛГО</small><span id="tPurpose">—</span></div>
+                <div><small>ОГНОО</small><span id="tDate">—</span></div>
+                <div><small>СУУДАЛ</small><span id="tSeat">—</span></div>
+              </div>
+              <a class="btn btn-sign t-send" id="tSend" href="#">Имэйлээр илгээх →</a>
+            </div>
+            <div class="t-stub" aria-hidden="true"><div class="barcode" id="barcode"></div></div>
+          </div>
+        </div>
+
+        <ul class="gates" id="gates"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p><span class="blink">●</span> СҮҮЛЧИЙН ДУУДЛАГА · LAST CALL</p>
+    <p>© <span id="year"></span> Хулан · Кодыг гараар бичсэн · <a href="https://github.com/Khuln988" target="_blank" rel="noopener">GitHub</a></p>
+    <p class="hint">Нууц: <kbd>↑</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd><kbd>←</kbd><kbd>→</kbd><kbd>B</kbd><kbd>A</kbd></p>
+  </footer>
+
+  <!-- Суух тасалбар (бүтээлийн дэлгэрэнгүй) -->
+  <dialog class="pass" id="passDialog" aria-labelledby="passTitle">
+    <button class="pass-close" id="passClose" aria-label="Хаах">×</button>
+    <div class="pass-body" id="passBody"></div>
+  </dialog>
+
+  <div class="flyover" id="flyover" aria-hidden="true">
+    <svg viewBox="0 0 64 24"><path d="M2 13l9-1 14-9h6l-8 9 18-1 6-5h4l-3 7 3 7h-4l-6-5-18-1 8 9h-6l-14-9-9-1z"/></svg>
+    <span>ХУЛАНД АЖЛЫН САНАЛ ӨГӨӨРӨЙ ✦</span>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
