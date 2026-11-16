@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sketchbook — Хулангийн зургийн дэвтэр</title>
+<meta name="description" content="Хөтөч дээр ажилладаг зураг зурах апп: бийр, тэгш хэм, буцаах, timelapse давталт, PNG татах." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23fbf7f0'/><path d='M14 50l6-16 22-22 10 10-22 22z' fill='%23b3122e'/><path d='M14 50l6-16 10 10z' fill='%233b2a20'/></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Dela+Gothic+One&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #fbf7f0; --ink: #3b2a20; --brown: #8a6a52; --cherry: #b3122e; --sakura: #f4c7cf;
+    --glass: rgba(255, 252, 247, .82); --line: rgba(59, 42, 32, .14);
+    --f-title: 'Dela Gothic One', 'Nunito', sans-serif; --f-body: 'Nunito', system-ui, sans-serif; --f-hand: 'Caveat', cursive;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #e9e1d4; color: var(--ink); font: 600 15px/1.4 var(--f-body); }
+  button, input { font: inherit; color: inherit; }
+
+  /* ---- Зурах талбар ---- */
+  .stage { position: fixed; inset: 0; touch-action: none; cursor: none; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #brushCursor {
+    position: fixed; left: 0; top: 0; pointer-events: none; z-index: 5;
+    border: 1.5px solid var(--ink); border-radius: 50%; mix-blend-mode: multiply;
+    transform: translate(-50%, -50%); transition: width .12s, height .12s, opacity .2s; opacity: 0;
+  }
+  #brushCursor::after { content: ''; position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: var(--cherry); }
+
+  /* ---- Дээд гарчиг ---- */
+  .title {
+    position: fixed; z-index: 6; left: 18px; top: 14px; display: flex; align-items: center; gap: 10px;
+    pointer-events: none;
+  }
+  .title a { pointer-events: auto; text-decoration: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(10px); transition: transform .2s; }
+  .title a:hover { transform: translateX(-3px); }
+  .title h1 { margin: 0; font: 400 20px/1 var(--f-title); letter-spacing: .02em; }
+  .title h1 span { color: var(--cherry); }
+  .title small { display: block; font: 700 17px/1 var(--f-hand); color: var(--brown); margin-top: 3px; }
+
+  /* ---- Хэрэгслийн самбар ---- */
+  .dock {
+    position: fixed; z-index: 6; left: 50%; bottom: max(14px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 6px; padding: 8px;
+    background: var(--glass); backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid var(--line); border-radius: 22px;
+    box-shadow: 0 18px 40px -18px rgba(59,42,32,.45), 0 2px 0 rgba(255,255,255,.7) inset;
+    max-width: calc(100vw - 20px); overflow-x: auto; scrollbar-width: none;
+    animation: dockIn .7s cubic-bezier(.2,1.2,.3,1) both .2s;
+  }
+  @keyframes dockIn { from { transform: translate(-50%, 140%); } }
+  .sep { width: 1px; align-self: stretch; background: var(--line); margin: 4px 4px; flex: none; }
+  .tool {
+    position: relative; flex: none;
+    width: 46px; height: 46px; border-radius: 14px; border: 0; background: transparent; cursor: pointer;
+    display: grid; place-items: center;
+    transition: background .2s, transform .15s cubic-bezier(.3,1.6,.5,1);
+  }
+  .tool svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .tool:hover { background: rgba(59,42,32,.07); transform: translateY(-3px); }
+  .tool:active { transform: scale(.9); }
+  .tool[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
+  .tool[aria-pressed='true'].accent { background: var(--cherry); }
+  .tool:disabled { opacity: .3; pointer-events: none; }
+  /* tooltip micro-interaction */
+  .tool::after {
+    content: attr(data-tip); position: absolute; bottom: calc(100% + 10px); left: 50%;
+    transform: translate(-50%, 6px); opacity: 0; pointer-events: none; white-space: nowrap;
+    background: var(--ink); color: var(--paper); font: 700 12px/1 var(--f-body); padding: 7px 9px; border-radius: 8px;
+    transition: .18s;
+  }
+  .tool:hover::after { opacity: 1; transform: translate(-50%, 0); }
+
+  .swatches { display: flex; gap: 6px; padding: 0 2px; flex: none; }
+  .sw {
+    width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(0,0,0,.08); cursor: pointer; padding: 0; flex: none;
+    transition: transform .2s cubic-bezier(.3,1.6,.5,1), box-shadow .2s;
+  }
+  .sw:hover { transform: scale(1.18) rotate(-8deg); }
+  .sw[aria-pressed='true'] { box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink); transform: scale(1.08); }
+  .sw.custom { position: relative; overflow: hidden; background: conic-gradient(#b3122e, #f4c7cf, #f2c14e, #5aa469, #3b6ea5, #8a6a52, #b3122e); }
+  .sw.custom input { position: absolute; inset: -6px; opacity: 0; cursor: pointer; }
+
+  .size { display: flex; align-items: center; gap: 8px; padding: 0 6px; flex: none; }
+  .size input { width: 92px; accent-color: var(--cherry); }
+  .size output { width: 26px; text-align: right; font: 800 13px/1 var(--f-body); color: var(--brown); }
+
+  /* ---- Toast ---- */
+  .toast {
+    position: fixed; z-index: 9; left: 50%; top: 18px; transform: translate(-50%, -300%);
+    background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 999px;
+    font: 700 14px/1 var(--f-body); box-shadow: 0 10px 24px rgba(0,0,0,.2);
+    transition: transform .45s cubic-bezier(.2,1.4,.3,1);
+  }
+  .toast.show { transform: translate(-50%, 0); }
+
+  /* ---- Эхний санамж ---- */
+  .hint {
+    position: fixed; z-index: 4; left: 50%; top: 46%; transform: translate(-50%, -50%) rotate(-2deg);
+    text-align: center; pointer-events: none; transition: opacity .6s, transform .6s;
+  }
+  .hint b { display: block; font: 400 clamp(30px, 6vw, 56px)/1.05 var(--f-title); color: var(--ink); }
+  .hint b span { color: var(--cherry); }
+  .hint p { margin: 10px 0 0; font: 700 clamp(20px, 3vw, 26px)/1.2 var(--f-hand); color: var(--brown); }
+  .hint.gone { opacity: 0; transform: translate(-50%, -60%) rotate(-2deg); }
+
+  /* ---- Timelapse үед ---- */
+  body.replaying .dock { opacity: .35; pointer-events: none; }
+  .rec { position: fixed; z-index: 7; right: 18px; top: 18px; display: none; align-items: center; gap: 8px; font: 800 13px/1 var(--f-body); color: var(--cherry); background: var(--glass); border: 1px solid var(--line); padding: 9px 12px; border-radius: 999px; }
+  .rec i { width: 9px; height: 9px; border-radius: 50%; background: var(--cherry); animation: blink 1s infinite; }
+  body.replaying .rec { display: flex; }
+  @keyframes blink { 50% { opacity: .2; } }
+
+  /* ---- Баталгаажуулах цонх ---- */
+  dialog { border: 0; border-radius: 18px; padding: 22px; background: var(--paper); color: var(--ink); box-shadow: 0 30px 60px -20px rgba(0,0,0,.4); max-width: 320px; }
+  dialog::backdrop { background: rgba(59,42,32,.35); backdrop-filter: blur(3px); }
+  dialog[open] { animation: pop .35s cubic-bezier(.2,1.4,.3,1); }
+  @keyframes pop { from { transform: scale(.9); opacity: 0; } }
+  dialog h2 { margin: 0 0 6px; font: 400 20px/1.2 var(--f-title); }
+  dialog p { margin: 0 0 18px; color: var(--brown); }
+  dialog .row { display: flex; gap: 8px; justify-content: flex-end; }
+  dialog button { border: 0; border-radius: 12px; padding: 10px 14px; font-weight: 800; cursor: pointer; background: rgba(59,42,32,.08); transition: transform .15s; }
+  dialog button:active { transform: scale(.95); }
+  dialog button.danger { background: var(--cherry); color: #fff; }
+
+  @media (max-width: 640px) {
+    .title h1 { font-size: 16px; } .title small { font-size: 15px; }
+    .tool { width: 42px; height: 42px; }
+    .size input { width: 70px; }
+    .stage { cursor: crosshair; }
+    #brushCursor { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <canvas id="bg"></canvas>
+    <canvas id="art"></canvas>
+    <canvas id="live"></canvas>
+  </div>
+  <div id="brushCursor"></div>
+
+  <header class="title">
+    <a href="../../#reading" aria-label="Портфолио руу буцах" title="Портфолио руу буцах">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b2a20" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div><h1>SKETCH<span>BOOK</span></h1><small>Хулангийн зургийн дэвтэр</small></div>
+  </header>
+
+  <div class="hint" id="hint"><b>Энд <span>зур</span> ✎</b><p>хулгана, хуруу эсвэл үзэгээр</p></div>
+  <div class="rec"><i></i> TIMELAPSE</div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <nav class="dock" aria-label="Зургийн хэрэгсэл">
+    <button class="tool" data-tool="pencil" data-tip="Харандаа (P)" aria-pressed="true">
+      <svg viewBox="0 0 24 24"><path d="M4 20l1.5-5L16 4.5l3.5 3.5L9 18.5z"/><path d="M14 6.5l3.5 3.5"/></svg>
+    </button>
+    <button class="tool" data-tool="ink" data-tip="Бэх үзэг (I)" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M12 3l5 6-5 12-5-12z"/><circle cx="12" cy="10" r="1.6"/></svg>
+    </button>
+    <button class="tool" data-tool="marker" data-tip="Маркер (M)" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M6 18l2-6 8-8 4 4-8 8z"/><path d="M4 21h8"/></svg>
+    </button>
+    <button class="tool" data-tool="eraser" data-tip="Баллуур (E)" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M4 15l9-9 6 6-7 7H8z"/></svg>
+    </button>
+    <span class="sep"></span>
+    <div class="swatches" id="swatches"></div>
+    <span class="sep"></span>
+    <label class="size" title="Бийрийн хэмжээ ([ ])">
+      <input type="range" id="size" min="1" max="60" value="4" aria-label="Бийрийн хэмжээ" />
+      <output id="sizeOut">4</output>
+    </label>
+    <span class="sep"></span>
+    <button class="tool accent" id="symBtn" data-tip="Тэгш хэм: унтраастай (S)" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M8 7l-4 5 4 5"/><path d="M16 7l4 5-4 5"/></svg>
+    </button>
+    <button class="tool" id="undoBtn" data-tip="Буцаах (Ctrl+Z)" disabled>
+      <svg viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+    </button>
+    <button class="tool" id="redoBtn" data-tip="Дахих (Ctrl+Y)" disabled>
+      <svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
+    </button>
+    <button class="tool" id="replayBtn" data-tip="Timelapse (R)" disabled>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z"/></svg>
+    </button>
+    <button class="tool" id="saveBtn" data-tip="PNG татах" disabled>
+      <svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>
+    </button>
+    <button class="tool" id="clearBtn" data-tip="Шинэ хуудас" disabled>
+      <svg viewBox="0 0 24 24"><path d="M5 7h14"/><path d="M10 7V4h4v3"/><path d="M7 7l1 13h8l1-13"/></svg>
+    </button>
+  </nav>
+
+  <dialog id="confirm">
+    <h2>Шинэ хуудас эхлэх үү?</h2>
+    <p>Одоогийн зураг арилна. (Хадгалахыг хүсвэл эхлээд PNG татаарай.)</p>
+    <div class="row"><button value="no" id="cNo">Болих</button><button class="danger" id="cYes">Арилгах</button></div>
+  </dialog>
+
+<script>
+/* =====================================================================
+   Sketchbook — зураг зурах апп. Цэвэр JavaScript + Canvas 2D.
+   Зураас бүрийг (stroke) цэгүүдийн массив болгон хадгална. Ингэснээр:
+   • буцаах/дахих = зураасын жагсаалтаас нэмэх/хасах
+   • timelapse = зураасуудыг цэг цэгээр нь дахин зурах
+   ===================================================================== */
+const $ = (s) => document.querySelector(s);
+const bg = $('#bg'), art = $('#art'), live = $('#live');
+const bctx = bg.getContext('2d'), actx = art.getContext('2d'), lctx = live.getContext('2d');
+
+const PALETTE = ['#3b2a20', '#8a6a52', '#b3122e', '#f4c7cf', '#ffffff', '#f2c14e', '#5aa469', '#3b6ea5'];
+const state = { tool: 'pencil', color: PALETTE[0], size: 4, sym: 0 }; // sym: 0 унтраастай, 2 толин, 6 мандал
+const strokes = [];   // зурсан бүх зураас
+const redoStack = [];
+let current = null;   // одоо зурж буй зураас
+let W = 0, H = 0, DPR = 1;
+
+/* ---------- Хэмжээ, цаасны бүтэц ---------- */
+function resize() {
+  DPR = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  for (const c of [bg, art, live]) { c.width = W * DPR; c.height = H * DPR; }
+  for (const x of [bctx, actx, lctx]) x.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawPaper();
+  redrawAll();
+}
+function drawPaper() {
+  bctx.fillStyle = '#fbf7f0';
+  bctx.fillRect(0, 0, W, H);
+  // цаасны мөхлөг (grain) — жижиг цэгүүд
+  for (let i = 0; i < (W * H) / 90; i++) {
+    bctx.fillStyle = `rgba(120, 90, 60, ${Math.random() * 0.05})`;
+    bctx.fillRect(Math.random() * W, Math.random() * H, 1, 1);
+  }
+  // дэвтрийн тор
+  bctx.strokeStyle = 'rgba(179, 18, 46, .06)';
+  bctx.lineWidth = 1;
+  for (let y = 32; y < H; y += 32) { bctx.beginPath(); bctx.moveTo(0, y + .5); bctx.lineTo(W, y + .5); bctx.stroke(); }
+}
+
+/* ---------- Тэгш хэм: нэг цэгээс хэд хэдэн хуулбар ---------- */
+function mirrors(pts, sym) {
+  if (!sym) return [pts];
+  const cx = W / 2, cy = H / 2;
+  if (sym === 2) return [pts, pts.map((p) => ({ ...p, x: 2 * cx - p.x }))];
+  const out = [];
+  for (let k = 0; k < sym; k++) {
+    const a = (Math.PI * 2 * k) / sym, cos = Math.cos(a), sin = Math.sin(a);
+    out.push(pts.map((p) => ({ ...p, x: cx + (p.x - cx) * cos - (p.y - cy) * sin, y: cy + (p.x - cx) * sin + (p.y - cy) * cos })));
+  }
+  return out;
+}
+
+/* ---------- Нэг зураасыг зурах ---------- */
+function paint(ctx, s, n = s.points.length) {
+  const pts = s.points.slice(0, n);
+  if (!pts.length) return;
+  for (const p of mirrors(pts, s.sym)) {
+    ctx.save();
+    ctx.lineCap = ctx.lineJoin = 'round';
+    ctx.strokeStyle = ctx.fillStyle = s.color;
+    if (s.tool === 'eraser') ctx.globalCompositeOperation = 'destination-out';
+    if (s.tool === 'marker') ctx.globalAlpha = 0.38;
+
+    if (s.tool === 'ink') {
+      // хурдан зурвал нимгэн, удаан бол зузаан — бэх үзэг шиг
+      for (let i = 1; i < p.length; i++) {
+        const a = p[i - 1], b = p[i];
+        ctx.lineWidth = Math.max(0.6, s.size * (b.w ?? 1));
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+      if (p.length === 1) { ctx.beginPath(); ctx.arc(p[0].x, p[0].y, s.size / 2, 0, 7); ctx.fill(); }
+    } else {
+      // гөлгөр муруй: дунд цэгүүдээр quadraticCurveTo
+      const passes = s.tool === 'pencil' ? 2 : 1;
+      for (let k = 0; k < passes; k++) {
+        const j = s.tool === 'pencil' ? 0.6 : 0;
+        if (s.tool === 'pencil') ctx.globalAlpha = 0.55;
+        ctx.lineWidth = s.tool === 'marker' ? s.size * 2.2 : s.size * (s.tool === 'pencil' ? (p[0].p ?? 1) * 0.9 + 0.1 : 1);
+        ctx.beginPath();
+        ctx.moveTo(p[0].x + k * j, p[0].y + k * j);
+        for (let i = 1; i < p.length - 1; i++) {
+          const mx = (p[i].x + p[i + 1].x) / 2, my = (p[i].y + p[i + 1].y) / 2;
+          ctx.quadraticCurveTo(p[i].x + k * j, p[i].y - k * j, mx, my);
+        }
+        const last = p[p.length - 1];
+        ctx.lineTo(last.x + 0.01, last.y);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+}
+
+function redrawAll() {
+  actx.clearRect(0, 0, W, H);
+  for (const s of strokes) paint(actx, s);
+}
+
+/* ---------- Pointer (хулгана, хуруу, үзэг) ---------- */
+const stage = $('#stage');
+const cursor = $('#brushCursor');
+function pos(e) { return { x: e.clientX, y: e.clientY, p: e.pressure && e.pointerType === 'pen' ? e.pressure : 1, t: performance.now() }; }
+
+stage.addEventListener('pointerdown', (e) => {
+  if (replaying) return;
+  stage.setPointerCapture(e.pointerId);
+  current = { tool: state.tool, color: state.color, size: state.size, sym: state.sym, points: [pos(e)] };
+  current.points[0].w = 1;
+  $('#hint').classList.add('gone');
+});
+stage.addEventListener('pointermove', (e) => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top = e.clientY + 'px';
+  cursor.style.opacity = 1;
+  if (!current) return;
+  // getCoalescedEvents — хурдан хөдөлгөөнд ч бүх цэгийг авна (гөлгөр зураас)
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  for (const ev of evs) {
+    const p = pos(ev), prev = current.points[current.points.length - 1];
+    const d = Math.hypot(p.x - prev.x, p.y - prev.y);
+    if (d < 1.2) continue;
+    const speed = d / Math.max(1, p.t - prev.t);
+    p.w = Math.max(0.25, Math.min(1.3, 1.25 - speed * 0.35)) * 0.5 + (prev.w ?? 1) * 0.5;
+    current.points.push(p);
+  }
+  if (current.tool === 'eraser') { actx.save(); paint(actx, { ...current, points: current.points.slice(-3) }); actx.restore(); }
+  else { lctx.clearRect(0, 0, W, H); paint(lctx, current); }
+});
+const end = () => {
+  if (!current) return;
+  lctx.clearRect(0, 0, W, H);
+  paint(actx, current);
+  strokes.push(current);
+  redoStack.length = 0;
+  current = null;
+  sync();
+};
+stage.addEventListener('pointerup', end);
+stage.addEventListener('pointercancel', end);
+stage.addEventListener('pointerleave', () => (cursor.style.opacity = 0));
+
+/* ---------- Товчлуурууд ---------- */
+const tools = document.querySelectorAll('[data-tool]');
+function setTool(t) {
+  state.tool = t;
+  tools.forEach((b) => b.setAttribute('aria-pressed', b.dataset.tool === t));
+  updateCursor();
+}
+tools.forEach((b) => b.addEventListener('click', () => setTool(b.dataset.tool)));
+
+const sw = $('#swatches');
+PALETTE.forEach((c, i) => {
+  const b = document.createElement('button');
+  b.className = 'sw'; b.style.background = c; b.setAttribute('aria-label', 'Өнгө ' + c); b.setAttribute('aria-pressed', i === 0);
+  b.addEventListener('click', () => setColor(c, b));
+  sw.append(b);
+});
+const custom = document.createElement('label');
+custom.className = 'sw custom'; custom.title = 'Өөр өнгө';
+custom.innerHTML = '<input type="color" value="#b3122e" aria-label="Өөр өнгө сонгох">';
+custom.querySelector('input').addEventListener('input', (e) => setColor(e.target.value, custom));
+sw.append(custom);
+function setColor(c, el) {
+  state.color = c;
+  sw.querySelectorAll('.sw').forEach((x) => x.setAttribute('aria-pressed', x === el));
+  if (state.tool === 'eraser') setTool('pencil');
+}
+
+const size = $('#size');
+size.addEventListener('input', () => { state.size = +size.value; $('#sizeOut').value = size.value; updateCursor(); });
+function updateCursor() {
+  const d = Math.max(6, state.tool === 'marker' ? state.size * 2.2 : state.size);
+  cursor.style.width = cursor.style.height = d + 'px';
+  cursor.style.borderStyle = state.tool === 'eraser' ? 'dashed' : 'solid';
+}
+
+const SYMS = [0, 2, 6];
+const SYM_NAMES = { 0: 'унтраастай', 2: 'толин', 6: 'мандал ✿' };
+$('#symBtn').addEventListener('click', () => {
+  state.sym = SYMS[(SYMS.indexOf(state.sym) + 1) % SYMS.length];
+  const b = $('#symBtn');
+  b.setAttribute('aria-pressed', state.sym > 0);
+  b.dataset.tip = 'Тэгш хэм: ' + SYM_NAMES[state.sym] + ' (S)';
+  toast('Тэгш хэм: ' + SYM_NAMES[state.sym]);
+});
+
+function undo() { if (strokes.length) { redoStack.push(strokes.pop()); redrawAll(); sync(); } }
+function redo() { if (redoStack.length) { strokes.push(redoStack.pop()); redrawAll(); sync(); } }
+$('#undoBtn').addEventListener('click', undo);
+$('#redoBtn').addEventListener('click', redo);
+
+function sync() {
+  $('#undoBtn').disabled = !strokes.length;
+  $('#redoBtn').disabled = !redoStack.length;
+  $('#replayBtn').disabled = $('#saveBtn').disabled = $('#clearBtn').disabled = !strokes.length;
+}
+
+/* PNG татах: цаас + зураг нийлүүлнэ */
+$('#saveBtn').addEventListener('click', () => {
+  const out = document.createElement('canvas');
+  out.width = bg.width; out.height = bg.height;
+  const o = out.getContext('2d');
+  o.drawImage(bg, 0, 0); o.drawImage(art, 0, 0);
+  o.font = `600 ${22 * DPR}px Caveat, cursive`; o.fillStyle = 'rgba(179,18,46,.7)';
+  o.fillText('— Khulan’s Sketchbook', out.width - 230 * DPR, out.height - 18 * DPR);
+  const a = document.createElement('a');
+  a.download = `sketch-${Date.now()}.png`;
+  a.href = out.toDataURL('image/png');
+  a.click();
+  toast('Зураг татагдлаа ✓');
+});
+
+const dlg = $('#confirm');
+$('#clearBtn').addEventListener('click', () => dlg.showModal());
+$('#cNo').addEventListener('click', () => dlg.close());
+$('#cYes').addEventListener('click', () => { strokes.length = redoStack.length = 0; redrawAll(); sync(); dlg.close(); toast('Шинэ хуудас ✎'); });
+
+/* ---------- Timelapse: зурсан дарааллаар нь дахин тоглуулна ---------- */
+let replaying = false;
+$('#replayBtn').addEventListener('click', replay);
+function replay() {
+  if (replaying || !strokes.length) return;
+  replaying = true;
+  document.body.classList.add('replaying');
+  actx.clearRect(0, 0, W, H);
+  const total = strokes.reduce((n, s) => n + s.points.length, 0);
+  const perFrame = Math.max(2, Math.ceil(total / 240)); // ~4 секундэд багтаана
+  let si = 0, pi = 1;
+  (function step() {
+    for (let k = 0; k < perFrame && si < strokes.length; k++) {
+      pi++;
+      if (pi > strokes[si].points.length) { paint(actx, strokes[si]); si++; pi = 1; }
+    }
+    lctx.clearRect(0, 0, W, H);
+    if (si < strokes.length) { paint(lctx, strokes[si], pi); requestAnimationFrame(step); }
+    else { replaying = false; document.body.classList.remove('replaying'); toast('Timelapse дууслаа ✿'); }
+  })();
+}
+
+/* ---------- Гарын товчлол ---------- */
+addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
+  if (k === 'p') setTool('pencil'); if (k === 'i') setTool('ink'); if (k === 'm') setTool('marker'); if (k === 'e') setTool('eraser');
+  if (k === 's') $('#symBtn').click(); if (k === 'r') replay();
+  if (k === '[' || k === ']') { size.value = +size.value + (k === ']' ? 2 : -2); size.dispatchEvent(new Event('input')); }
+});
+
+let tt;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+addEventListener('resize', resize);
+resize();
+updateCursor();
+</script>
+</body>
+</html>
