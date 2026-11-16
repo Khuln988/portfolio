@@ -88,6 +88,27 @@
   .size input { width: 92px; accent-color: var(--cherry); }
   .size output { width: 26px; text-align: right; font: 800 13px/1 var(--f-body); color: var(--brown); }
 
+  /* ---- Оруулсан зураг (reference) ---- */
+  #ref { transition: opacity .2s; }
+  label.tool { cursor: pointer; }
+  .refbar {
+    position: fixed; z-index: 6; right: 16px; top: 14px; display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: 0 12px 30px -16px rgba(59,42,32,.5); animation: dockIn2 .45s cubic-bezier(.2,1.3,.3,1);
+  }
+  @keyframes dockIn2 { from { transform: translateY(-140%); } }
+  .refbar[hidden] { display: none; }
+  .refbar img { width: 40px; height: 40px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+  .refbar label { display: grid; font: 800 11px/1.2 var(--f-body); color: var(--brown); }
+  .refbar input { width: 110px; accent-color: var(--cherry); }
+  .refbar button { width: 32px; height: 32px; border-radius: 10px; border: 0; background: rgba(59,42,32,.08); cursor: pointer; font-weight: 900; transition: transform .15s; }
+  .refbar button:hover { transform: scale(1.1); } .refbar button.off { opacity: .4; }
+  .drop { position: fixed; inset: 12px; z-index: 8; display: grid; place-items: center; border: 3px dashed var(--cherry); border-radius: 24px; background: rgba(251,247,240,.85); font: 400 28px/1 var(--f-title); color: var(--cherry); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .drop.on { opacity: 1; }
+  /* пипетк: курсор дотор өнгө харагдана */
+  body.picking #brushCursor { width: 34px !important; height: 34px !important; border: 3px solid #fff; box-shadow: 0 0 0 1.5px var(--ink), 0 6px 14px rgba(0,0,0,.25); mix-blend-mode: normal; }
+  body.picking #brushCursor::after { display: none; }
+
   /* ---- Toast ---- */
   .toast {
     position: fixed; z-index: 9; left: 50%; top: 18px; transform: translate(-50%, -300%);
@@ -130,6 +151,7 @@
     .title h1 { font-size: 16px; } .title small { font-size: 15px; }
     .tool { width: 42px; height: 42px; }
     .size input { width: 70px; }
+    .refbar { left: 10px; right: 10px; top: 70px; justify-content: space-between; } .refbar input { width: 90px; }
     .stage { cursor: crosshair; }
     #brushCursor { display: none; }
   }
@@ -139,6 +161,7 @@
 <body>
   <div class="stage" id="stage">
     <canvas id="bg"></canvas>
+    <canvas id="ref"></canvas>
     <canvas id="art"></canvas>
     <canvas id="live"></canvas>
   </div>
@@ -153,6 +176,13 @@
 
   <div class="hint" id="hint"><b>Энд <span>зур</span> ✎</b><p>хулгана, хуруу эсвэл үзэгээр</p></div>
   <div class="rec"><i></i> TIMELAPSE</div>
+  <div class="refbar" id="refbar" hidden>
+    <img id="refThumb" alt="" />
+    <label>Зургийн тод байдал <input type="range" id="refOpacity" min="5" max="100" value="55" /></label>
+    <button id="refHide" title="Нуух/харуулах">👁</button>
+    <button id="refRemove" title="Зургийг хасах">×</button>
+  </div>
+  <div class="drop" id="drop">Зургаа энд тавина уу ⤓</div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <nav class="dock" aria-label="Зургийн хэрэгсэл">
@@ -167,6 +197,9 @@
     </button>
     <button class="tool" data-tool="eraser" data-tip="Баллуур (E)" aria-pressed="false">
       <svg viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M4 15l9-9 6 6-7 7H8z"/></svg>
+    </button>
+    <button class="tool" data-tool="picker" data-tip="Өнгө авах — пипетк (K)" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M14 4l6 6-2 2-6-6z"/><path d="M13 7l-8.5 8.5L4 20l4.5-.5L17 11"/></svg>
     </button>
     <span class="sep"></span>
     <div class="swatches" id="swatches"></div>
@@ -188,6 +221,10 @@
     <button class="tool" id="replayBtn" data-tip="Timelapse (R)" disabled>
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z"/></svg>
     </button>
+    <label class="tool" id="importBtn" data-tip="Зураг оруулах (дээрээс нь зурна)" tabindex="0">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/></svg>
+      <input type="file" id="fileIn" accept="image/*" hidden />
+    </label>
     <button class="tool" id="saveBtn" data-tip="PNG татах" disabled>
       <svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>
     </button>
@@ -210,8 +247,9 @@
    • timelapse = зураасуудыг цэг цэгээр нь дахин зурах
    ===================================================================== */
 const $ = (s) => document.querySelector(s);
-const bg = $('#bg'), art = $('#art'), live = $('#live');
-const bctx = bg.getContext('2d'), actx = art.getContext('2d'), lctx = live.getContext('2d');
+const bg = $('#bg'), ref = $('#ref'), art = $('#art'), live = $('#live');
+const bctx = bg.getContext('2d'), rctx = ref.getContext('2d'), actx = art.getContext('2d', { willReadFrequently: true }), lctx = live.getContext('2d');
+let refImg = null;   // оруулсан зураг (зөвхөн дэвсгэр — PNG-д ОРОХГҮЙ)
 
 const PALETTE = ['#3b2a20', '#8a6a52', '#b3122e', '#f4c7cf', '#ffffff', '#f2c14e', '#5aa469', '#3b6ea5'];
 const state = { tool: 'pencil', color: PALETTE[0], size: 4, sym: 0 }; // sym: 0 унтраастай, 2 толин, 6 мандал
@@ -224,9 +262,10 @@ let W = 0, H = 0, DPR = 1;
 function resize() {
   DPR = Math.min(devicePixelRatio || 1, 2);
   W = innerWidth; H = innerHeight;
-  for (const c of [bg, art, live]) { c.width = W * DPR; c.height = H * DPR; }
-  for (const x of [bctx, actx, lctx]) x.setTransform(DPR, 0, 0, DPR, 0, 0);
+  for (const c of [bg, ref, art, live]) { c.width = W * DPR; c.height = H * DPR; }
+  for (const x of [bctx, rctx, actx, lctx]) x.setTransform(DPR, 0, 0, DPR, 0, 0);
   drawPaper();
+  drawRef();
   redrawAll();
 }
 function drawPaper() {
@@ -309,6 +348,7 @@ function pos(e) { return { x: e.clientX, y: e.clientY, p: e.pressure && e.pointe
 
 stage.addEventListener('pointerdown', (e) => {
   if (replaying) return;
+  if (state.tool === 'picker') { pickColor(e.clientX, e.clientY); return; }
   stage.setPointerCapture(e.pointerId);
   current = { tool: state.tool, color: state.color, size: state.size, sym: state.sym, points: [pos(e)] };
   current.points[0].w = 1;
@@ -318,6 +358,7 @@ stage.addEventListener('pointermove', (e) => {
   cursor.style.left = e.clientX + 'px';
   cursor.style.top = e.clientY + 'px';
   cursor.style.opacity = 1;
+  if (state.tool === 'picker') { cursor.style.background = sample(e.clientX, e.clientY); return; }
   if (!current) return;
   // getCoalescedEvents — хурдан хөдөлгөөнд ч бүх цэгийг авна (гөлгөр зураас)
   const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
@@ -347,9 +388,13 @@ stage.addEventListener('pointerleave', () => (cursor.style.opacity = 0));
 
 /* ---------- Товчлуурууд ---------- */
 const tools = document.querySelectorAll('[data-tool]');
+let lastBrush = 'pencil';
 function setTool(t) {
   state.tool = t;
+  if (!['eraser', 'picker'].includes(t)) lastBrush = t;
   tools.forEach((b) => b.setAttribute('aria-pressed', b.dataset.tool === t));
+  document.body.classList.toggle('picking', t === 'picker');
+  if (t !== 'picker') cursor.style.background = '';
   updateCursor();
 }
 tools.forEach((b) => b.addEventListener('click', () => setTool(b.dataset.tool)));
@@ -369,7 +414,7 @@ sw.append(custom);
 function setColor(c, el) {
   state.color = c;
   sw.querySelectorAll('.sw').forEach((x) => x.setAttribute('aria-pressed', x === el));
-  if (state.tool === 'eraser') setTool('pencil');
+  if (state.tool === 'eraser' || state.tool === 'picker') setTool(lastBrush);
 }
 
 const size = $('#size');
@@ -413,7 +458,7 @@ $('#saveBtn').addEventListener('click', () => {
   a.download = `sketch-${Date.now()}.png`;
   a.href = out.toDataURL('image/png');
   a.click();
-  toast('Зураг татагдлаа ✓');
+  toast(refImg ? 'Зөвхөн таны зурсан зураг татагдлаа ✓' : 'Зураг татагдлаа ✓');
 });
 
 const dlg = $('#confirm');
@@ -443,13 +488,81 @@ function replay() {
   })();
 }
 
+/* ---------- Зураг оруулах: дээрээс нь зурна, PNG-д ОРОХГҮЙ ---------- */
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return toast('Зөвхөн зураг оруулна уу');
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    refImg = img;
+    drawRef();
+    $('#refThumb').src = url;
+    $('#refbar').hidden = false;
+    ref.style.opacity = $('#refOpacity').value / 100;
+    $('#hint').classList.add('gone');
+    toast('Зураг орлоо — дээрээс нь зураарай ✎');
+  };
+  img.src = url;
+}
+// зургийг дэлгэцэнд багтаан голлуулж зурна (contain)
+function drawRef() {
+  rctx.clearRect(0, 0, W, H);
+  if (!refImg) return;
+  const k = Math.min((W * 0.9) / refImg.width, (H * 0.8) / refImg.height);
+  const w = refImg.width * k, h = refImg.height * k;
+  refRect = { x: (W - w) / 2, y: (H - h) / 2 - 20, w, h };
+  rctx.drawImage(refImg, refRect.x, refRect.y, w, h);
+}
+let refRect = null;
+$('#importBtn').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') $('#fileIn').click(); });
+$('#fileIn').addEventListener('change', (e) => { loadFile(e.target.files[0]); e.target.value = ''; });
+$('#refOpacity').addEventListener('input', (e) => { ref.style.opacity = e.target.value / 100; $('#refHide').classList.remove('off'); });
+$('#refHide').addEventListener('click', (e) => {
+  const off = e.currentTarget.classList.toggle('off');
+  ref.style.opacity = off ? 0 : $('#refOpacity').value / 100;
+});
+$('#refRemove').addEventListener('click', () => { refImg = null; drawRef(); $('#refbar').hidden = true; toast('Зургийг хаслаа'); });
+// чирж тавих, хуулж буулгах (Ctrl+V)
+const drop = $('#drop');
+addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('on'); });
+addEventListener('dragleave', (e) => { if (!e.relatedTarget) drop.classList.remove('on'); });
+addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('on'); loadFile(e.dataTransfer.files[0]); });
+addEventListener('paste', (e) => { const f = [...(e.clipboardData?.files || [])][0]; if (f) loadFile(f); });
+
+/* ---------- Пипетк: зурган дээрээс өнгө авах ---------- */
+const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+probe.canvas.width = probe.canvas.height = 1;
+function px(src, x, y) {
+  probe.clearRect(0, 0, 1, 1);
+  probe.drawImage(src, Math.floor(x * DPR), Math.floor(y * DPR), 1, 1, 0, 0, 1, 1);
+  return probe.getImageData(0, 0, 1, 1).data;
+}
+// эхлээд таны зураг, дараа нь оруулсан зураг (бүрэн өнгөөр), эцэст нь цаас
+function sample(x, y) {
+  let d = px(art, x, y);
+  if (d[3] < 20 && refImg && refRect && x >= refRect.x && y >= refRect.y && x < refRect.x + refRect.w && y < refRect.y + refRect.h) {
+    probe.clearRect(0, 0, 1, 1);
+    probe.drawImage(refImg, ((x - refRect.x) / refRect.w) * refImg.width, ((y - refRect.y) / refRect.h) * refImg.height, 1, 1, 0, 0, 1, 1);
+    d = probe.getImageData(0, 0, 1, 1).data;
+  }
+  if (d[3] < 20) d = px(bg, x, y);
+  return '#' + [d[0], d[1], d[2]].map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+function pickColor(x, y) {
+  const hex = sample(x, y);
+  custom.querySelector('input').value = hex;
+  custom.style.background = hex;
+  setColor(hex, custom);
+  toast('Өнгө авлаа ' + hex);
+}
+
 /* ---------- Гарын товчлол ---------- */
 addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
   const k = e.key.toLowerCase();
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
-  if (k === 'p') setTool('pencil'); if (k === 'i') setTool('ink'); if (k === 'm') setTool('marker'); if (k === 'e') setTool('eraser');
+  if (k === 'p') setTool('pencil'); if (k === 'i') setTool('ink'); if (k === 'm') setTool('marker'); if (k === 'e') setTool('eraser'); if (k === 'k') setTool('picker');
   if (k === 's') $('#symBtn').click(); if (k === 'r') replay();
   if (k === '[' || k === ']') { size.value = +size.value + (k === ']' ? 2 : -2); size.dispatchEvent(new Event('input')); }
 });
