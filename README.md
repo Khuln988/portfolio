@@ -1,4 +1,4 @@
-# ✎ Хулан — Sketchbook Quest
+# ✎ Хатанбаатар Хулан — Sketchbook Quest
 
 > SWE334 Internet Programming · Бие даалт 2 · Хувийн портфолио вэбсайт
 

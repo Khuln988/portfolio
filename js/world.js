@@ -42,7 +42,7 @@ export const secretCoin = { name: 'Нууц стикер', color: '#ffffff', x: 
 
 // Самбар — ойртоход манга маягийн яриан бөмбөлөг гарна
 export const signs = [
-  { x: 200, title: 'Сайн уу! 👋', text: `Би ${profile.name} — ${profile.role}. ${profile.tagline} ← → алхаж, Space-ээр үсэрнэ.` },
+  { x: 200, title: 'Сайн уу! 👋', text: `Би ${profile.fullName} — ${profile.role}. ${profile.tagline} ← → алхаж, Space-ээр үсэрнэ.` },
   { x: 420, title: 'Миний тухай', text: profile.bio[0] },
   { x: 1000, title: 'Миний тухай (2)', text: profile.bio[1] },
   { x: 1490, title: 'Бүлэг 2 · Хобби', text: 'Миний хоббигийн өрөөнд тавтай мор! Объект бүрийн өмнө зогсоод ↑ (эсвэл «Үзэх») дарна уу.' },
