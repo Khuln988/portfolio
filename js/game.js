@@ -47,7 +47,8 @@ export class Game {
     coins.forEach((c) => (c.taken = false));
     secretCoin.taken = false;
     frames.forEach((f) => (f.visited = false));
-    Object.assign(volleyBall, { x: 2140, y: GROUND - 7, vx: 0, vy: 0, hits: 0, rot: 0, grounded: true });
+    let rec = 0; try { rec = +localStorage.getItem('volley-best') || 0; } catch {}
+    Object.assign(volleyBall, { x: 2140, y: GROUND - 7, vx: 0, vy: 0, hits: 0, rot: 0, best: rec, newRec: false });
     this.finished = false;
     this.cur = { sign: null, obj: null, section: null };
   }
@@ -196,7 +197,7 @@ export class Game {
       if (Math.abs(b.vy) > 0.8) sfx.bump();
       b.vy = -b.vy * 0.45; b.vx *= 0.9;
       if (Math.abs(b.vy) < 0.6) b.vy = 0;
-      if (b.hits > 0) { this.hooks.onVolley?.(b.hits, true); b.hits = 0; }
+      if (b.hits > 0) { this.hooks.onVolley?.(b.hits, true); b.hits = 0; b.newRec = false; }
     }
     // тоглогчтой мөргөлдөх: бөмбөг доошоо явж байхад нуруу/толгойд хүрвэл дээш ойно
     const px = p.x + p.w / 2;
@@ -208,13 +209,19 @@ export class Game {
       b.y = p.y - b.r - 2;
       b.hits++;
       this.stats.volleyBest = Math.max(this.stats.volleyBest, b.hits);
+      if (b.hits > b.best) {           // шинэ рекорд — хөтөчид хадгална
+        b.best = b.hits;
+        try { localStorage.setItem('volley-best', b.best); } catch {}
+        if (!b.newRec && b.hits >= 2) { b.newRec = true; this.hooks.onVolleyRecord?.(b.hits); }
+      }
       sfx.coin();
       this.dust(b.x, b.y + b.r, 6, '#fffdf8');
       this.hooks.onVolley?.(b.hits, false);
     } else if (overlapX && overlapY && b.vy === 0) {
       b.vx = (b.x - px) * 0.2; b.vy = -2.2; // хажуунаас түлхэх
     }
-    hobbyObjs.find((o) => o.id === 'volley').score = b.hits;
+    const vo = hobbyObjs.find((o) => o.id === 'volley');
+    vo.score = b.hits; vo.best = b.best;
   }
 
   /* ---------- Стикер, самбар, объект, мод ---------- */
@@ -298,7 +305,7 @@ export class Game {
     const vis = (x, ww = 80) => x + ww > cam - 10 && x < cam + w + 10;
     decor.forEach((d) => vis(d.x, 20) && art.drawDecor(b, d.x, d.type, d.k, pal));
     hobbyObjs.forEach((o) => vis(o.x, 90) && art.drawHobby(b, o, t, this.cur.obj === o, pal));
-    if (vis(net.x - 140, 300)) { art.drawNet(b, net, pal); }
+    if (vis(net.x - 140, 300)) { art.drawVolleyWalls(b, 2063, 2317, pal); art.drawNet(b, net, pal); }
     frames.forEach((f, i) => vis(f.x, 90) && art.drawFrame(b, f, i, this.imgs[i], f.visited, this.cur.obj === f, t, pal));
     signs.forEach((s) => vis(s.x, 30) && art.drawSign(b, s.x, this.cur.sign === s, t, pal));
     if (vis(tree.x - 40, 160)) art.drawTree(b, tree.x, t, this.finished);

@@ -36,7 +36,7 @@ const hash = (n) => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Mat
 const GLYPH = {
   0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001111001111', 4: '101101111001001',
   5: '111100111001111', 6: '111100111101111', 7: '111001010010010', 8: '111101111101111', 9: '111101111001111',
-  N: '101111111111101', E: '111100110100111', W: '101101111111101',
+  N: '101111111111101', E: '111100110100111', W: '101101111111101', H: '101101111101101', I: '111010010010111',
 };
 export function pixelText(ctx, str, x, y, color) {
   ctx.fillStyle = color;
@@ -263,10 +263,22 @@ function nook(ctx, x, y, t) {
 }
 
 function scoreboard(ctx, x, y, t, o) {
-  // волейболын онооны самбар (тор нь тусдаа)
-  R(ctx, x + 6, y - 40, 2, 40, C.ink);
-  box(ctx, x - 2, y - 52, 26, 14, C.ink, C.ink);
-  pixelText(ctx, String(Math.min(99, o.score ?? 0)).padStart(2, '0'), x + 7, y - 48, '#ffd36e');
+  // волейболын онооны самбар: дээд мөр = одоогийн тосолт, доод мөр = рекорд (HI)
+  R(ctx, x + 6, y - 36, 2, 36, C.ink);
+  box(ctx, x - 4, y - 56, 30, 21, C.ink, C.ink);
+  pixelText(ctx, String(Math.min(99, o.score ?? 0)).padStart(2, '0'), x + 7, y - 53, '#ffd36e');
+  pixelText(ctx, 'HI', x - 1, y - 45, '#f4c7cf');
+  pixelText(ctx, String(Math.min(99, o.best ?? 0)).padStart(2, '0'), x + 13, y - 45, '#ffffff');
+}
+
+// Волейболын талбайн хоёр талын хана — бүдэг тасархай шугам
+export function drawVolleyWalls(ctx, left, right, p) {
+  ctx.globalAlpha = 0.28;
+  for (const x of [left, right]) {
+    for (let yy = GROUND - 2; yy > GROUND - 120; yy -= 6) R(ctx, x, yy - 3, 1, 3, p.ink);
+    R(ctx, x - 2, GROUND - 122, 5, 1, p.ink);
+  }
+  ctx.globalAlpha = 1;
 }
 
 export function drawNet(ctx, net, p) {
