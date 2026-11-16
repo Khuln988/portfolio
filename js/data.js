@@ -1,94 +1,141 @@
 // ===================================================================
-//  data.js — сайтын бүх агуулга энд. Текст солих бол зөвхөн энэ файлыг засна.
+//  data.js — сайтын БҮХ агуулга. Текст солих бол зөвхөн энэ файлыг засна.
+//  Тоглоом (game.js) болон унших горим (reading.js) хоёулаа эндээс уншина.
 // ===================================================================
 
 export const profile = {
-  name: 'Хулан',                 // TODO: Овог нэрээ бүтнээр нь бичиж болно
+  name: 'Хулан',                 // TODO: овог нэрээ бүтэн бичиж болно
   nameLatin: 'KHULAN',
   role: 'Full-stack вэб хөгжүүлэгч',
-  tagline:
-    'Хүмүүсийн цагийг хэмнэж, ашиглахад таатай вэб бүтээгдэхүүнийг санаанаас нь эхлээд production хүртэл хүргэдэг.',
+  tagline: 'Зураг шиг сэтгэл татам, тоглоом шиг сонирхолтой вэб туршлагыг кодоор бүтээдэг.',
   school: 'СЭЗИС · Мэдээллийн Системийн Менежментийн тэнхим',
-  nationality: 'Монгол',
-  languages: 'Монгол, Англи',
   base: 'Улаанбаатар',
+  languages: 'Монгол, Англи',
   bio: [
-    'Би СЭЗИС-ийн МСМ тэнхимд суралцдаг, вэб хөгжүүлэлтэд дуртай оюутан. Нэг товчлуурын ард юу болдгийг — өгөгдлийн сан, эрхийн бодлого, төлбөрийн урсгал хүртэл — өөрөө ойлгож, өөрөө бүтээх дуртай.',
-    'Сүүлийн хичээлийн жилд цаг захиалгын SaaS, тэнхимийн дижитал музей, онлайн дэлгүүр гэсэн гурван төслийг бүтээж, Vercel дээр нийтэд байршуулсан. Дараагийн «нислэг» маань — бодит хэрэглэгчидтэй багт дадлага хийх.',
+    'Сайн уу! Би Хулан — СЭЗИС-ийн МСМ тэнхимд суралцдаг, вэб хөгжүүлэлтэд дуртай оюутан. Товчлуурын ард юу болдгийг — өгөгдлийн сан, эрхийн бодлого, төлбөрийн урсгал хүртэл — өөрөө ойлгож, өөрөө бүтээх дуртай.',
+    'Чөлөөт цагаараа зураг зурж, анимэ үзэж, ном уншдаг. Зураг зурах дуртай учраас интерфэйс бүрт хөдөлгөөн, өнгө, жижиг «амьд» мөчүүдийг нэмэх дуртай — энэ сайт ч тэр дундаа нэг.',
   ],
-  email: 'b22fa1276@ufe.edu.mn', // TODO: нийтэд харуулахыг хүсэх имэйлээ тавина
+  facts: [
+    { k: 'Суурин', v: 'Улаанбаатар' },
+    { k: 'Сургууль', v: 'СЭЗИС · МСМ' },
+    { k: 'Хэл', v: 'Монгол, Англи' },
+    { k: 'Одоо', v: 'Дадлагын байр хайж байна' },
+  ],
+  colors: [
+    { name: 'Цагаан', hex: '#fbf7f0' },
+    { name: 'Бор', hex: '#7a5238' },
+    { name: 'Cherry red', hex: '#b3122e' },
+  ],
+  nameFact: 'Хулан бол Говийн тал нутгийн хурдан зэрлэг илжиг. Энэ тоглоомын баатар ч тийм — гэхдээ улаан беретээ өмссөн зураач 🎨',
+  email: 'b22fa1276@ufe.edu.mn', // TODO: нийтэд харуулах имэйлээ тавина
   socials: [
     { label: 'GitHub', handle: '@Khuln988', url: 'https://github.com/Khuln988' },
-    // TODO: хоосон биш болговол автоматаар гарч ирнэ
-    { label: 'LinkedIn', handle: '', url: '' },
+    { label: 'LinkedIn', handle: '', url: '' },   // хоосон бол харагдахгүй
     { label: 'Instagram', handle: '', url: '' },
   ],
 };
 
-// Паспортын «виз тамга» — ур чадвар. year = анх хэрэглэж эхэлсэн он
+// Мэргэжлийн ур чадвар — тоглоомд «стикер», унших горимд хөдөлгөөнт мөр болно
 export const skills = [
-  { name: 'HTML / CSS', year: 2023, shape: 'circle', note: 'Semantic markup, Grid/Flex, container query, анимэйшн' },
-  { name: 'JavaScript', year: 2023, shape: 'rect', note: 'ES modules, DOM, Web Audio, IntersectionObserver' },
-  { name: 'React', year: 2025, shape: 'circle', note: 'Hooks, React Router, компонент архитектур' },
-  { name: 'Supabase', year: 2025, shape: 'rect', note: 'Auth, Storage, RLS бодлого, Edge Functions' },
-  { name: 'PostgreSQL', year: 2025, shape: 'oval', note: 'RPC функц, exclusion constraint, pg_cron' },
-  { name: 'Stripe', year: 2026, shape: 'rect', note: 'Checkout, webhook, автомат буцаалт' },
-  { name: 'Vite', year: 2025, shape: 'oval', note: 'Build, env тохиргоо' },
-  { name: 'Git / Vercel', year: 2024, shape: 'circle', note: 'Git-тэй холбосон автомат deploy' },
-  { name: 'Figma', year: 2024, shape: 'rect', note: 'Wireframe, user flow, прототип' },
+  { name: 'HTML / CSS', group: 'Frontend', level: 90, color: '#e8743b', note: 'Semantic markup, Grid/Flex, keyframe анимэйшн, responsive' },
+  { name: 'JavaScript', group: 'Frontend', level: 85, color: '#d9a400', note: 'ES modules, Canvas 2D, Web Audio, Pointer events' },
+  { name: 'React', group: 'Frontend', level: 80, color: '#2fa3c8', note: 'Hooks, React Router, custom hook, компонент архитектур' },
+  { name: 'Supabase', group: 'Backend', level: 75, color: '#2f9e6e', note: 'Auth, Storage, RLS бодлого, Edge Functions' },
+  { name: 'PostgreSQL', group: 'Backend', level: 70, color: '#3b6ea5', note: 'JOIN, GROUP BY, RPC функц, exclusion constraint, pg_cron' },
+  { name: 'REST API', group: 'Backend', level: 72, color: '#6a3fa0', note: 'fetch, статус код, Stripe webhook, алдааны боловсруулалт' },
+  { name: 'Git / Vercel', group: 'Хэрэгсэл', level: 80, color: '#c2410c', note: 'Branch, commit түүх, Git-тэй холбосон автомат deploy' },
+  { name: 'Figma', group: 'Хэрэгсэл', level: 75, color: '#d6336c', note: 'Wireframe, user flow, прототип' },
+  { name: 'Motion design', group: 'Хэрэгсэл', level: 78, color: '#b3122e', note: 'Micro-interaction, transition, scroll animation, sprite анимэйшн' },
 ];
 
-// Нислэгүүд = бүтээлүүд
+export const softSkills = ['Багаар ажиллах 🏐', 'Шинийг хурдан сурах', 'Асуудал шийдвэрлэх', 'Нарийн мэдрэмж 🎨', 'Тайлбарлах чадвар'];
+
+// Хобби — тоглоомын 2-р бүлэгт объект болж гарна
+export const hobbies = [
+  { id: 'draw', kind: 'hobby', icon: '✎', title: 'Зураг зурах', tag: 'Хобби',
+    text: 'Харандаа, бэхээр анимэ маягийн дүр, ландшафт зурах дуртай. Зурах дуртай учраас өөрийн гэсэн зураг зурах апп хүртэл хийсэн — доорх товчоор туршаад үзээрэй!',
+    link: { label: 'Sketchbook апп нээх ✎', url: 'projects/sketchbook/' } },
+  { id: 'anime', kind: 'hobby', icon: '✦', title: 'Анимэ үзэх', tag: 'Хобби',
+    text: 'Анимэгийн өнгө, хөдөлгөөн, түүх өгүүлэх арга надад их урам өгдөг. Энэ сайтын манга маягийн самбар, хурдны зураас, хэлхээ бөмбөлөг тэндээс санаа авсан.' },
+  { id: 'read', kind: 'hobby', icon: '❦', title: 'Ном унших', tag: 'Хобби',
+    text: 'Уран зохиол, хөгжүүлэлтийн ном уншиж, сонирхолтой санаагаа дэвтэртээ тэмдэглэдэг. Энэ тоглоомын номон тавцангууд яг миний номын тавиураас 📚' },
+  { id: 'volley', kind: 'sport', icon: '🏐', title: 'Волейбол', tag: 'Спорт',
+    text: 'Багийн тоглоом — харилцаа, итгэлцэл, хурдан шийдвэр. Тор дээрх бөмбөгийг толгойгоороо тосоод үзээрэй! (дээш үсрэх)' },
+  { id: 'pingpong', kind: 'sport', icon: '🏓', title: 'Ширээний теннис', tag: 'Спорт',
+    text: 'Хурдан хариу үйлдэл, анхаарал төвлөрөл. Хоёр талын цохиурыг хараарай — тэд хэзээ ч алддаггүй 😄' },
+  { id: 'billiard', kind: 'sport', icon: '🎱', title: 'Биллиард', tag: 'Спорт',
+    text: 'Өнцөг, хүч, тэвчээр — яг программчлал шиг. Тиймээс жинхэнэ физиктэй биллиардын тоглоом бүтээсэн. Тоглоод үзээрэй!',
+    link: { label: 'Cherry Billiards тоглох 🎱', url: 'projects/billiards/' } },
+];
+
+// Бүтээлүүд — тоглоомын 3-р бүлэгт зургийн жааз болно. isNew: энэ бие даалтад шинээр хийсэн
 export const works = [
   {
-    flight: 'KH101',
-    dest: 'BOOKIT',
+    id: 'sketchbook', isNew: true, type: 'Creative tool',
+    title: 'Sketchbook — зураг зурах апп',
+    year: '2026', accent: '#b3122e',
+    image: 'assets/works/sketchbook.webp',
+    summary: 'Хөтөч дээр шууд ажилладаг зургийн дэвтэр. Харандаа, бэх үзэг, маркер, баллуур; толин болон 6 талт «мандал» тэгш хэм; зурсан зургаа timelapse хэлбэрээр дахин тоглуулж, PNG болгон татна.',
+    highlights: [
+      'Бэх үзэг зурах хурдаас хамаарч зузаан/нимгэн болно (Pointer Events + үзгийн даралт)',
+      'Зураас бүрийг цэгийн массиваар хадгалсан тул буцаах/дахих, timelapse боломжтой',
+      'Гарын товчлол, хөдөлгөөнт tooltip, toast зэрэг micro-interaction',
+    ],
+    stack: ['Canvas 2D', 'Pointer Events', 'JavaScript', 'CSS animation'],
+    live: 'projects/sketchbook/',
+    repo: 'https://github.com/Khuln988/portfolio/tree/main/projects/sketchbook',
+  },
+  {
+    id: 'billiards', isNew: true, type: 'Game',
+    title: 'Cherry Billiards — физиктэй тоглоом',
+    year: '2026', accent: '#7c0c22',
+    image: 'assets/works/billiards.webp',
+    summary: 'Cherry red даавуутай 2D биллиард. Бөмбөг хоорондын уян мөргөлдөөн, үрэлт, хана, халаас бүгд өөрөө бичсэн физик. Чиглэлийн шугам бай бөмбөг хаашаа явахыг урьдчилан харуулна.',
+    highlights: [
+      'Мөргөлдөөнийг нэг frame-д 4 дэд алхмаар тооцож бөмбөг нэвтрэхээс сэргийлсэн',
+      'Raycast-аар «сүнс бөмбөг» болон бай бөмбөгийн чиглэлийг тооцно',
+      'Гар утсан дээр ширээ 90° эргэнэ, дээд амжилт localStorage-д хадгалагдана',
+    ],
+    stack: ['Canvas 2D', 'Физик', 'Web Audio', 'JavaScript'],
+    live: 'projects/billiards/',
+    repo: 'https://github.com/Khuln988/portfolio/tree/main/projects/billiards',
+  },
+  {
+    id: 'bookit', type: 'SaaS',
     title: 'BookIt — цаг захиалгын SaaS',
-    date: '2026.11',
-    gate: 'C1',
-    status: 'ОНЛАЙН',
+    year: '2026', accent: '#4f46e5',
     image: 'assets/works/bookit.svg',
-    summary:
-      'Салон, шүдний эмнэлэг, фитнес зэрэг үйлчилгээний бизнест зориулсан онлайн цаг захиалгын платформ. Бизнес бүр өөрийн хуудастай, үйлчлүүлэгч бүртгэлгүйгээр цаг авч, холбоосоор цуцална.',
+    summary: 'Салон, шүдний эмнэлэг, фитнес зэрэг үйлчилгээний бизнест зориулсан онлайн цаг захиалгын платформ. Үйлчлүүлэгч бүртгэлгүйгээр цаг авч, холбоосоор цуцална.',
     highlights: [
       'Давхар захиалгыг өгөгдлийн сангийн түвшинд exclusion constraint-оор хориглосон',
       'Stripe-аар урьдчилгаа авч, төлөгдөөгүй захиалгыг pg_cron 5 минут тутам цуцална',
       'Цуцлагдсан захиалгын төлбөрийг webhook автоматаар буцаана',
     ],
-    stack: ['React 18', 'Vite', 'Supabase', 'PostgreSQL', 'Stripe', 'Vercel'],
+    stack: ['React 18', 'Supabase', 'PostgreSQL', 'Stripe', 'Vercel'],
     live: 'https://bookit-mn.vercel.app',
-    repo: '', // хаалттай репо
-    repoNote: 'Хаалттай репо — хүсэлтээр',
+    repo: '', repoNote: 'Хаалттай репо — хүсэлтээр',
   },
   {
-    flight: 'KH202',
-    dest: 'ISM МУЗЕЙ',
+    id: 'museum', type: 'Web app',
     title: 'ISM Digital Museum',
-    date: '2026.10',
-    gate: 'C2',
-    status: 'ОНЛАЙН',
+    year: '2026', accent: '#8a6a52',
     image: 'assets/works/museum.svg',
-    summary:
-      'МСМ тэнхимийн түүх, багш нар, арга хэмжээ, оюутнуудын бүтээлийг нэг дор хадгалсан интерактив дижитал музей. Зочин, бүтээгч, админ гэсэн 3 түвшний эрхтэй.',
+    summary: 'МСМ тэнхимийн түүх, багш нар, арга хэмжээ, оюутнуудын бүтээлийг нэг дор хадгалсан интерактив дижитал музей. 3D галерейн коридор бүхий виртуал үзэсгэлэнтэй.',
     highlights: [
-      'Виртуал үзэсгэлэн: 3D галерейн коридор, ангилал бүрээр өрөө, аудио хөтөч',
+      'Виртуал үзэсгэлэн: ангилал бүрээр өрөө, аудио хөтөч, автомат аялал',
       'Оюутны нэмсэн бүтээл «pending» төлөвт орж админ хянана (RLS)',
       'Хайлт, шүүлтүүр URL query-д хадгалагдана',
     ],
-    stack: ['React 18', 'React Router', 'Supabase', 'RLS', 'Vercel'],
+    stack: ['React 18', 'React Router', 'Supabase', 'RLS'],
     live: 'https://ism-digital-museum.vercel.app',
     repo: 'https://github.com/khuln988/ism-digital-museum',
   },
   {
-    flight: 'KH303',
-    dest: 'LINQUIRE',
+    id: 'linquire', type: 'Website',
     title: 'Linquire — хувцасны дэлгүүр',
-    date: '2026.10',
-    gate: 'C3',
-    status: 'ОНЛАЙН',
+    year: '2026', accent: '#c2477a',
     image: 'assets/works/linquire.svg',
-    summary:
-      'Эмэгтэй хувцасны онлайн дэлгүүрийн нүүр хуудас. Ангиллаар сонгох, шинэ бараа, сагс, нэвтрэх цонхтой — ямар ч framework-гүй цэвэр HTML, CSS, JavaScript.',
+    summary: 'Эмэгтэй хувцасны онлайн дэлгүүрийн нүүр хуудас. Ангилал, шинэ бараа, сагс, нэвтрэх цонхтой — framework-гүй цэвэр HTML, CSS, JavaScript.',
     highlights: [
       'Playfair Display + DM Sans хослол, зөөлөн ягаавтар палитр',
       'Сагсанд нэмэх, нийт дүн тооцох логик JavaScript-ээр',
@@ -96,15 +143,6 @@ export const works = [
     ],
     stack: ['HTML', 'CSS', 'JavaScript'],
     live: 'projects/linquire/',
-    repo: '',
-    repoNote: 'Эх код энэ портфолиогийн репо дотор',
+    repo: 'https://github.com/Khuln988/portfolio/tree/main/projects/linquire',
   },
 ];
-
-// Нисэх буудлын «зарлал» — хэсэг рүү ороход гарна
-export const announcements = {
-  hero: 'Terminal K-д тавтай морил. Таны хөтөч бол Хулан.',
-  about: 'Паспорт шалгалт: ур чадварын тамга бүр дээр дарж дэлгэрэнгүйг үзээрэй.',
-  works: 'KH101, KH202, KH303 нислэгүүд C хаалганаас хөөрөхөд бэлэн.',
-  contact: 'Сүүлчийн дуудлага! Check-in ширээ нээлттэй байна.',
-};
