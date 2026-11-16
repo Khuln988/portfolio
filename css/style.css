@@ -223,12 +223,17 @@ body:not([data-mode='reading']) .reading { visibility: hidden; }
   -webkit-mask: radial-gradient(circle, transparent 0 22%, #000 60%); mask: radial-gradient(circle, transparent 0 22%, #000 60%);
 }
 @keyframes rotate { to { transform: rotate(360deg); } }
-.cover { position: relative; z-index: 2; text-align: center; padding: 24px; max-width: 720px; }
+.cover { position: relative; z-index: 2; text-align: center; padding: 24px; width: min(720px, 100%); }
 .cover-vol { margin: 0 0 6px; font: 900 12px/1 var(--f-body); letter-spacing: .3em; color: var(--brown); animation: rise .6s var(--ease-out) both; }
 .cover-title, .r-name {
-  margin: 0; font: 400 clamp(68px, 17vw, 168px)/.95 var(--f-title); letter-spacing: .02em; color: var(--ink);
+  margin: 0; font: 400 clamp(56px, 16vw, 168px)/.95 var(--f-title); letter-spacing: .02em; color: var(--ink);
   text-shadow: 5px 5px 0 var(--cherry);
+  white-space: nowrap;           /* «ХУЛАН» хэзээ ч 2 мөр болж хуваагдахгүй */
 }
+/* багтах өргөнөөс хамаарч үсгийн хэмжээ өөрчлөгдөнө (container query) */
+.cover, .r-hero-text { container-type: inline-size; }
+.cover-title { font-size: min(168px, 17cqi); }
+.r-name { font-size: min(150px, 17cqi); }
 [data-split] .ch { display: inline-block; animation: letterPop .7s var(--ease-pop) both; animation-delay: calc(var(--i) * 70ms + .1s); }
 [data-split] .ch:hover { animation: wobble .5s ease; color: var(--cherry); text-shadow: 5px 5px 0 var(--ink); }
 @keyframes letterPop { from { transform: translateY(60px) rotate(-12deg) scale(.6); opacity: 0; } }
@@ -308,6 +313,17 @@ body:not([data-mode='reading']) .reading { visibility: hidden; }
 .finish-lead { color: var(--ink-2); }
 .finish-cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 18px; }
 
+/* Ширээний теннис */
+.pp { width: min(400px, 94vw); }
+.pp [hidden] { display: none; }
+.pp-body { padding: 16px 18px 18px; display: grid; justify-items: center; gap: 6px; }
+.pp-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.pp-head h3 { margin: 0; font: 400 20px/1.1 var(--f-title); }
+.pp-score { font: 400 26px/1 var(--f-title); color: var(--cherry); padding: 6px 12px; border: 2.5px solid var(--ink); border-radius: 12px; background: var(--paper); box-shadow: 3px 3px 0 var(--ink); }
+.pp-names { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 0; font-weight: 900; font-size: 14px; }
+.pp-names small { font-weight: 700; color: var(--ink-2); font-size: 12px; }
+.pp-canvas { width: min(300px, 78vw, calc((92svh - 190px) * 300 / 460)); height: auto; aspect-ratio: 300 / 460; border-radius: 14px; touch-action: none; cursor: none; }
+
 /* Холбоо барих холбоосууд */
 .links { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .link {
@@ -355,7 +371,7 @@ body:not([data-mode='reading']) .reading { visibility: hidden; }
   max-width: 1180px; margin: 0 auto; padding: 40px clamp(18px, 4vw, 40px) 80px;
 }
 .r-hero .hand { font-size: clamp(26px, 3.4vw, 36px); }
-.r-name { font-size: clamp(64px, 12vw, 150px); }
+
 .r-role { margin: 16px 0 8px; font: 900 clamp(20px, 2.6vw, 28px)/1.2 var(--f-body); }
 .r-tag { margin: 0 0 26px; max-width: 42ch; color: var(--ink-2); font-size: 17px; }
 .r-cta { display: flex; flex-wrap: wrap; gap: 14px; }
