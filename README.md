@@ -2,7 +2,7 @@
 
 > SWE334 Internet Programming · Бие даалт 2 · Хувийн портфолио вэбсайт
 
-- **Live:** https://_____.vercel.app  <!-- deploy хийсний дараа солино -->
+- **Live:** https://portfolio-five-theta-hc4ghzeuww.vercel.app
 - **GitHub:** https://github.com/Khuln988/portfolio
 
 ## Бүтээлч санаа
