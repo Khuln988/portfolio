@@ -183,6 +183,21 @@
     <div class="panel-body" id="panelBody"></div>
   </dialog>
 
+  <!-- ================= Ширээний теннис (тоглогдоно) ================= -->
+  <dialog class="panel pp" id="ppDialog" aria-labelledby="ppTitle">
+    <button class="panel-close" id="ppClose" aria-label="Хаах">×</button>
+    <div class="pp-body">
+      <header class="pp-head">
+        <h3 id="ppTitle">🏓 Ширээний теннис</h3>
+        <b class="pp-score" id="ppScore">0 : 0</b>
+      </header>
+      <p class="pp-names"><span>Хулан-бот 🤖</span><small id="ppRec"></small></p>
+      <canvas id="ppCanvas" class="pp-canvas" width="300" height="460" aria-label="Ширээний теннисийн талбай"></canvas>
+      <p class="pp-names"><span>Та ✦</span><small>хулгана · хуруу · ← →</small></p>
+      <button class="btn btn-cherry sm" id="ppAgain" hidden>↻ Дахин тоглох</button>
+    </div>
+  </dialog>
+
   <!-- ================= Төгсгөл: холбоо барих ================= -->
   <dialog class="panel finish" id="finish" aria-labelledby="finishTitle">
     <div class="panel-lines" aria-hidden="true"></div>

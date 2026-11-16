@@ -65,6 +65,7 @@ export function initReading() {
       <h3>${esc(h.title)}</h3>
       <p>${esc(h.text)}</p>
       ${h.link ? `<a class="btn btn-cherry sm magnetic" href="${esc(h.link.url)}">${esc(h.link.label)}</a>` : ''}
+      ${h.play ? `<button class="btn btn-cherry sm magnetic" data-play="${esc(h.play.id)}">${esc(h.play.label)}</button>` : ''}
       ${scenes[h.id] ? `<div class="mini-scene ${scenes[h.id]}" aria-hidden="true">${h.id === 'billiard' ? '<span class="ball b1"></span><span class="ball b2"></span>' : '<span class="ball"></span>'}</div>` : ''}
     </article>`).join('');
 

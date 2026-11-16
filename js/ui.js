@@ -41,6 +41,7 @@ export function openPanel(item, onClose) {
         <h3 id="panelTitle">${esc(item.title)}</h3>
         <p>${esc(item.text)}</p>
         ${item.link ? `<a class="btn btn-cherry" href="${esc(item.link.url)}">${esc(item.link.label)}</a>` : ''}
+        ${item.play ? `<button class="btn btn-cherry" data-play="${esc(item.play.id)}">${esc(item.play.label)}</button>` : ''}
       </div>`;
   } else {
     const live = isExternal(item.live) ? item.live : new URL(item.live, location.href).href;

@@ -11,6 +11,7 @@ import { sfx } from './audio.js';
 import { drawKhulan } from './art.js';
 import { $, $$, toast, splitLetters, openPanel, closeDialog, initDialogs, renderLinks } from './ui.js';
 import { initReading, initMagnetic } from './reading.js';
+import { initPingPong, openPingPong } from './pingpong.js';
 
 const body = document.body;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -78,6 +79,8 @@ function showBubble(sign) {
   }, 18);
 }
 
+const volleyBest = () => { try { return +localStorage.getItem('volley-best') || 0; } catch { return 0; } };
+
 /* ---------- Тоглоомын hooks → UI ---------- */
 function gameHooks() {
   const prompt = $('#prompt');
@@ -86,7 +89,7 @@ function gameHooks() {
     onSign: showBubble,
     onNear(obj, sx, sy) {
       if (!obj) { prompt.classList.remove('show'); nearObj = null; return; }
-      if (obj !== nearObj) { $('#promptLabel').textContent = obj.kind ? obj.title : 'Бүтээл үзэх'; nearObj = obj; }
+      if (obj !== nearObj) { $('#promptLabel').textContent = obj.play ? obj.play.label : obj.kind ? obj.title : 'Бүтээл үзэх'; nearObj = obj; }
       prompt.style.left = sx + 'px';
       prompt.style.top = Math.max(70, sy) + 'px';
       prompt.classList.add('show');
@@ -94,7 +97,9 @@ function gameHooks() {
     onOpen(obj) {
       game.paused = true;
       input.reset();
-      openPanel(obj, () => { if (body.dataset.mode === 'game') game.paused = false; });
+      const resume = () => { if (body.dataset.mode === 'game') { game.paused = false; input.reset(); } };
+      if (obj.play) openPingPong(resume);      // ширээний теннис — шууд тоглоом нээгдэнэ
+      else openPanel(obj, resume);
     },
     onCoin(c, n) {
       const s = $('#stickers');
@@ -114,8 +119,9 @@ function gameHooks() {
     onProgress(f) { $('#progress').style.width = (f * 100).toFixed(1) + '%'; },
     onVolley(n, ended) {
       if (!ended && n >= 2) toast(`Волей ×${n}!`, n >= 5 ? 'Жинхэнэ тамирчин 🏐' : 'Бөмбөгийг унагаалгүй тос!', '🏐', '#2f5fb3');
-      if (ended && n >= 3) toast(`Сайн байна! ${n} удаа тоссон`, `Шилдэг: ${game.stats.volleyBest}`, '★', '#b3122e');
+      if (ended && n >= 3) toast(`Сайн байна! ${n} удаа тоссон`, `Рекорд: ${volleyBest()}`, '🏐', '#2f5fb3');
     },
+    onVolleyRecord(n) { toast(`Шинэ рекорд: ${n} тосолт! 🏆`, 'Хөтөчид хадгалагдлаа', '★', '#b3122e'); },
     onFall() { toast('Ой! Цаасны нүх 🙈', 'Ойрын хуудаснаас дахин эхэллээ', '!', '#7a5238'); },
     onFinish(stats) { setTimeout(() => showFinish(stats), 900); },
   };
@@ -127,7 +133,7 @@ function showFinish(stats) {
     [`${stats.coins}/${skills.length}`, 'ур чадварын стикер'],
     [`${frames.filter((f) => f.visited).length}/${frames.length}`, 'бүтээл үзсэн'],
     [`${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, 'хугацаа'],
-    [stats.volleyBest || 0, 'волей тосолт'],
+    [`${stats.volleyBest || 0} / ${volleyBest()}`, 'волей: энэ удаа / рекорд'],
   ];
   if (stats.secret) items.push(['★', 'нууц стикер']);
   $('#finishStats').innerHTML = items.map(([b, s], i) => `<li style="--i:${i}"><b>${b}</b><small>${s}</small></li>`).join('');
@@ -183,6 +189,18 @@ function init() {
   window.game = game; // DevTools-оос шалгахад хэрэгтэй
   initTheme(game);
   initDialogs();
+  initPingPong();
+  // «Тоглох» товч (хобби самбар, унших горимын карт) → ширээний теннис
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest?.('[data-play]');
+    if (!b) return;
+    const wasPanel = $('#panel').open;
+    if (wasPanel) closeDialog($('#panel'));
+    setTimeout(() => {
+      if (body.dataset.mode === 'game') game.paused = true;
+      openPingPong(() => { if (body.dataset.mode === 'game') { game.paused = false; input.reset(); } });
+    }, wasPanel ? 260 : 0);
+  });
   splitLetters();
   $('#coverTag').textContent = profile.tagline;
   $$('.year').forEach((y) => (y.textContent = new Date().getFullYear()));
