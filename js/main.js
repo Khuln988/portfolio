@@ -1,388 +1,236 @@
 // ===================================================================
-//  main.js — сайтыг угсарч, харилцан үйлдлүүдийг холбоно.
-//  Хэсэг бүр тусдаа функц: hero, passport, departures, checkin, extras.
+//  main.js — бүгдийг холбоно: горим солих (нүүр / тоглоом / унших),
+//  тоглоомын hooks → UI, горим (өдөр/шөнө), дуу, нууц (easter egg).
 // ===================================================================
 
-import { profile, skills, works, announcements } from './data.js';
-import { FlapText, createBoard } from './splitflap.js';
-import { sound } from './sound.js';
+import { profile, skills } from './data.js';
+import { sections, frames } from './world.js';
+import { Game } from './game.js';
+import { bindTouch, input } from './input.js';
+import { sfx } from './audio.js';
+import { drawKhulan } from './art.js';
+import { $, $$, toast, splitLetters, openPanel, closeDialog, initDialogs, renderLinks } from './ui.js';
+import { initReading, initMagnetic } from './reading.js';
 
-const $ = (s, root = document) => root.querySelector(s);
-const $$ = (s, root = document) => [...root.querySelectorAll(s)];
-const h = (tag, attrs = {}, html = '') => {
-  const el = document.createElement(tag);
-  Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
-  el.innerHTML = html;
-  return el;
-};
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const body = document.body;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ---------- Цаг (Улаанбаатар) ---------- */
-const ubTime = (opts) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ulaanbaatar', ...opts }).format(new Date());
-function tickClock() {
-  const t = ubTime({ hour: '2-digit', minute: '2-digit' });
-  $('#clock').textContent = t;
-  $('#depClock').textContent = t;
-}
-
-/* ---------- Горим (өдөр/шөнө) — localStorage-д хадгална ---------- */
-function initTheme() {
+/* ---------- Горим (өдөр/шөнө) ---------- */
+function initTheme(game) {
   const root = document.documentElement;
   let saved = null;
   try { saved = localStorage.getItem('theme'); } catch {}
-  const start = saved || (matchMedia('(prefers-color-scheme: light)').matches ? 'day' : 'night');
-  root.dataset.theme = start;
-
-  $('#themeBtn').addEventListener('click', () => {
-    const next = root.dataset.theme === 'night' ? 'day' : 'night';
-    root.dataset.theme = next;
+  const apply = (t) => {
+    root.dataset.theme = t;
+    game.theme = t;
+    $('meta[name="theme-color"]').content = t === 'night' ? '#1f1713' : '#fbf7f0';
+  };
+  apply(saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'day'));
+  $$('[data-theme-toggle]').forEach((b) => b.addEventListener('click', () => {
+    const next = root.dataset.theme === 'day' ? 'night' : 'day';
+    apply(next);
     try { localStorage.setItem('theme', next); } catch {}
-    announce(next === 'day' ? 'Өдрийн нислэг рүү шилжлээ. Нарны шил зүүгээрэй 😎' : 'Шөнийн нислэг. Салоны гэрлийг бүдэгрүүлж байна.');
-  });
+    toast(next === 'night' ? 'Шөнийн дэвтэр' : 'Өдрийн дэвтэр', next === 'night' ? 'Дэнлүүгээ асаалаа 🏮' : 'Нар гарлаа ☀', next === 'night' ? '☾' : '☀');
+  }));
 }
 
-/* ---------- Дуу ---------- */
-function initSound() {
-  const btn = $('#soundBtn');
-  btn.addEventListener('click', () => {
-    const on = sound.toggle();
-    btn.setAttribute('aria-pressed', on);
-    announce(on ? 'Дуу асаалаа. Самбарын шаржигнах дууг сонсоорой.' : 'Дуу унтраалаа.');
-  });
+/* ---------- Горим солих: «бэх арчилт» transition ---------- */
+let game;
+function setMode(mode, ev) {
+  if (body.dataset.mode === mode) return;
+  const wipe = $('#wipe');
+  const x = ev?.clientX ?? innerWidth / 2, y = ev?.clientY ?? innerHeight / 2;
+  wipe.style.setProperty('--wx', x + 'px');
+  wipe.style.setProperty('--wy', y + 'px');
+  const swap = () => {
+    body.dataset.mode = mode;
+    game.paused = mode !== 'game';
+    input.enabled = mode === 'game'; // унших горимд сумаар гүйлгэх боломжтой байлгана
+    input.reset();
+    if (mode === 'game') { game.start(); game.resize(); $('#screen').focus?.(); }
+    if (mode === 'reading') { history.replaceState(null, '', '#reading'); $('#reading').focus({ preventScroll: true }); }
+    else history.replaceState(null, '', location.pathname);
+  };
+  if (reduce) return swap();
+  wipe.className = 'wipe in';
+  setTimeout(() => { swap(); wipe.className = 'wipe out'; }, 430);
+  setTimeout(() => (wipe.className = 'wipe'), 1000);
 }
 
-/* ---------- Зарлал (PA) ---------- */
-let paTimer;
-function announce(text) {
-  const pa = $('#pa');
-  $('#paText').textContent = text;
-  pa.classList.add('show');
-  sound.chime();
-  clearTimeout(paTimer);
-  paTimer = setTimeout(() => pa.classList.remove('show'), 4200);
-}
-
-/* ---------- A · Hero самбар ---------- */
-async function initHero() {
-  $('#heroTitle').textContent = `${profile.name} — ${profile.role}`;
-  // tagline: эхний хэсгийг онцолно
-  $('#tagline').innerHTML = esc(profile.tagline).replace('ашиглахад таатай вэб бүтээгдэхүүнийг', '<em>$&</em>');
-
-  const isNarrow = innerWidth < 520;
-  const cols = isNarrow ? 10 : 14;
-  const rows = createBoard($('#heroBoard'), cols, 3);
-  // богино текстийн өмнө 1 зай авч самбарын ирмэгээс холдуулна
-  const pad = (s) => (s.length < cols ? ' ' + s : s);
-
-  await rows[0].set(pad(profile.name.toUpperCase()));
-  await rows[1].set(pad('FULL-STACK'));
-  await rows[2].set(pad('ХӨГЖҮҮЛЭГЧ'));
-  $('#heroPlane').classList.add('takeoff');
-
-  // 3-р мөр мэндчилгээг ээлжлэн солино
-  const seq = isNarrow
-    ? ['САЙН УУ', 'ХӨГЖҮҮЛЭГЧ', 'WELCOME', 'ХӨГЖҮҮЛЭГЧ', 'HIRE ME', 'ХӨГЖҮҮЛЭГЧ']
-    : ['САЙН БАЙНА УУ', 'ХӨГЖҮҮЛЭГЧ', 'WELCOME ABOARD', 'ХӨГЖҮҮЛЭГЧ', 'ДАДЛАГАД БЭЛЭН', 'ХӨГЖҮҮЛЭГЧ'];
+/* ---------- Яриан бөмбөлөг: бичгийн машин мэт гарна ---------- */
+let typeTimer;
+function showBubble(sign) {
+  const b = $('#bubble');
+  clearInterval(typeTimer);
+  if (!sign) { b.classList.remove('show'); return; }
+  $('#bubbleTitle').textContent = sign.title;
+  const p = $('#bubbleText');
+  b.classList.add('show');
+  if (reduce) { p.textContent = sign.text; return; }
   let i = 0;
-  setInterval(() => {
-    if (document.hidden) return;
-    rows[2].set(pad(seq[i++ % seq.length]));
-  }, 4200);
+  p.textContent = '';
+  typeTimer = setInterval(() => {
+    i += 2;
+    p.innerHTML = '';
+    p.append(sign.text.slice(0, i));
+    if (i < sign.text.length) p.insertAdjacentHTML('beforeend', '<span class="caret"></span>');
+    else clearInterval(typeTimer);
+  }, 18);
 }
 
-/* ---------- B · Паспорт ---------- */
-function initPassport() {
-  const fields = [
-    ['Овог нэр / Name', `${profile.name} · ${profile.nameLatin}`, true],
-    ['Чиглэл / Role', profile.role],
-    ['Сургууль / School', profile.school],
-    ['Хэл / Languages', profile.languages],
-    ['Суурин / Base', profile.base],
-  ];
-  $('#fields').append(
-    ...fields.map(([k, v, big]) => h('div', big ? { class: 'big' } : {}, `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)),
-  );
-  $('#bio').innerHTML = profile.bio.map((p) => `<p>${esc(p)}</p>`).join('');
-
-  // Machine-readable zone — паспортын доод талын код
-  const latin = profile.nameLatin.replace(/\s+/g, '<');
-  const line1 = `P<MNG${latin}<<FULL<STACK<DEVELOPER`.padEnd(44, '<').slice(0, 44);
-  const line2 = `KH${new Date().getFullYear()}<UFE<ISM<REACT<SUPABASE<OPEN<TO<WORK`.padEnd(44, '<').slice(0, 44);
-  $('#mrz').innerHTML = `${line1}<br>${line2}`;
-
-  // Тамгууд
-  const note = $('#stampNote');
-  const list = $('#stamps');
-  skills.forEach((s, i) => {
-    const rot = ((i * 37) % 22) - 11; // тогтвортой «санамсаргүй» эргэлт
-    const li = h('li');
-    const btn = h(
-      'button',
-      { class: `stamp ${s.shape}`, style: `--rot:${rot}deg`, type: 'button', 'aria-label': `${s.name}: ${s.note}` },
-      `<span><small>ОРСОН ${s.year}</small>${esc(s.name)}<small>★ APPROVED ★</small></span>`,
-    );
-    btn.addEventListener('click', () => {
-      $$('.stamp.active').forEach((b) => b !== btn && b.classList.remove('active'));
-      btn.classList.toggle('active');
-      note.innerHTML = btn.classList.contains('active')
-        ? `<b>${esc(s.name)}</b> — ${esc(s.note)}`
-        : 'Тамга дээр дарж тухайн технологиор юу хийснийг үзээрэй.';
-      sound.stamp();
-    });
-    li.append(btn);
-    list.append(li);
-  });
-
-  // Дэлгэцэнд орж ирэхэд паспорт нээгдэж, тамга нэг нэгээр дарагдана
-  const passport = $('#passport');
-  const io = new IntersectionObserver(
-    ([e]) => {
-      if (!e.isIntersecting) return;
-      io.disconnect();
-      passport.classList.add('open');
-      $$('.stamp', passport).forEach((st, i) =>
-        setTimeout(() => { st.classList.add('in'); sound.stamp(); }, 700 + i * 170),
-      );
+/* ---------- Тоглоомын hooks → UI ---------- */
+function gameHooks() {
+  const prompt = $('#prompt');
+  let nearObj = null;
+  return {
+    onSign: showBubble,
+    onNear(obj, sx, sy) {
+      if (!obj) { prompt.classList.remove('show'); nearObj = null; return; }
+      if (obj !== nearObj) { $('#promptLabel').textContent = obj.kind ? obj.title : 'Бүтээл үзэх'; nearObj = obj; }
+      prompt.style.left = sx + 'px';
+      prompt.style.top = Math.max(70, sy) + 'px';
+      prompt.classList.add('show');
     },
-    { threshold: 0.25 },
-  );
-  io.observe(passport);
+    onOpen(obj) {
+      game.paused = true;
+      input.reset();
+      openPanel(obj, () => { if (body.dataset.mode === 'game') game.paused = false; });
+    },
+    onCoin(c, n) {
+      const s = $('#stickers');
+      $('#coinCount').textContent = n;
+      s.classList.remove('bump'); void s.offsetWidth; s.classList.add('bump');
+      if (c.secret) toast('Нууц стикер олдлоо! 🎉', profile.nameFact.slice(0, 60) + '…', '★', '#3b2a20');
+      else toast(`+ ${c.name}`, c.note, '✦', c.color);
+      if (n === skills.length) setTimeout(() => toast('Бүх ур чадвар цугларлаа!', '9/9 стикер ✿', '♛', '#b3122e'), 700);
+    },
+    onSection(sec, i) {
+      const ch = $('#chapter');
+      $('#chapNo').textContent = sec.id;
+      $('#chapName').textContent = sec.label;
+      ch.classList.remove('flip'); void ch.offsetWidth; ch.classList.add('flip');
+      $$('#map button').forEach((b, k) => b.classList.toggle('on', k <= i));
+    },
+    onProgress(f) { $('#progress').style.width = (f * 100).toFixed(1) + '%'; },
+    onVolley(n, ended) {
+      if (!ended && n >= 2) toast(`Волей ×${n}!`, n >= 5 ? 'Жинхэнэ тамирчин 🏐' : 'Бөмбөгийг унагаалгүй тос!', '🏐', '#2f5fb3');
+      if (ended && n >= 3) toast(`Сайн байна! ${n} удаа тоссон`, `Шилдэг: ${game.stats.volleyBest}`, '★', '#b3122e');
+    },
+    onFall() { toast('Ой! Цаасны нүх 🙈', 'Ойрын хуудаснаас дахин эхэллээ', '!', '#7a5238'); },
+    onFinish(stats) { setTimeout(() => showFinish(stats), 900); },
+  };
 }
 
-/* ---------- C · Нислэгийн самбар ---------- */
-function barcode(el, seed, bars = 38) {
-  let x = seed;
-  el.innerHTML = '';
-  for (let i = 0; i < bars; i++) {
-    x = (x * 9301 + 49297) % 233280; // жижиг псевдо-санамсаргүй генератор
-    const w = 1 + (x % 4);
-    const bar = document.createElement('i');
-    bar.style[el.closest('.t-stub') ? 'height' : 'width'] = w + 'px';
-    if (el.closest('.t-stub')) bar.style.width = '100%';
-    el.append(bar);
-  }
+function showFinish(stats) {
+  const sec = Math.round((stats.end - stats.start) / 1000);
+  const items = [
+    [`${stats.coins}/${skills.length}`, 'ур чадварын стикер'],
+    [`${frames.filter((f) => f.visited).length}/${frames.length}`, 'бүтээл үзсэн'],
+    [`${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, 'хугацаа'],
+    [stats.volleyBest || 0, 'волей тосолт'],
+  ];
+  if (stats.secret) items.push(['★', 'нууц стикер']);
+  $('#finishStats').innerHTML = items.map(([b, s], i) => `<li style="--i:${i}"><b>${b}</b><small>${s}</small></li>`).join('');
+  renderLinks($('#finishLinks'));
+  game.paused = true;
+  $('#finish').showModal();
 }
-const seedOf = (s) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
 
-function initDepartures() {
-  const list = $('#depRows');
-  const flaps = [];
-
-  works.forEach((w, idx) => {
-    const li = h('li');
-    const row = h('button', { class: 'dep-row', type: 'button', 'aria-label': `${w.title} — дэлгэрэнгүй` });
-    row.innerHTML = `
-      <span class="when">${esc(w.date)}</span>
-      <span class="c-flight mini"></span>
-      <span class="c-dest mini"></span>
-      <span class="c-gate mini"></span>
-      <span class="status"><span class="lamp"></span><span class="c-status mini"></span><span class="dep-go">ТАСАЛБАР →</span></span>`;
-    row.addEventListener('click', () => openPass(w, idx));
-    li.append(row);
-    list.append(li);
-    flaps.push([
-      [new FlapText($('.c-flight', row), 5, { highlight: true }), w.flight],
-      [new FlapText($('.c-dest', row), 9), w.dest],
-      [new FlapText($('.c-gate', row), 2, { highlight: true }), w.gate],
-      [new FlapText($('.c-status', row), 6), w.status],
-    ]);
+/* ---------- Нүүрний жижиг хулан (ажиллаж буй sprite) ---------- */
+function spriteLoop() {
+  const cvs = [$('#heroSprite'), $('#readSprite')].map((c) => {
+    const x = c.getContext('2d');
+    x.imageSmoothingEnabled = false;
+    return x;
   });
-
-  // 4 дэх «нислэг» — ирээдүйн төсөл: дарахад холбоо барих хэсэг рүү аваачна
-  const li = h('li');
-  const soon = h('button', { class: 'dep-row soon', type: 'button', 'aria-label': 'Дараагийн төсөл — холбоо барих' });
-  soon.innerHTML = `
-      <span class="when">ТУН УДАХГҮЙ</span>
-      <span class="c-flight mini"></span>
-      <span class="c-dest mini"></span>
-      <span class="c-gate mini"></span>
-      <span class="status"><span class="lamp"></span><span class="c-status mini"></span><span class="dep-go">CHECK-IN →</span></span>`;
-  soon.addEventListener('click', () => {
-    $('#contact').scrollIntoView({ behavior: 'smooth' });
-    setTimeout(() => $('#fName').focus({ preventScroll: true }), 700);
-  });
-  li.append(soon);
-  list.append(li);
-  flaps.push([
-    [new FlapText($('.c-flight', soon), 5, { highlight: true }), 'KH404'],
-    [new FlapText($('.c-dest', soon), 9), 'ТАНЫ БАГ?'],
-    [new FlapText($('.c-gate', soon), 2, { highlight: true }), 'D1'],
-    [new FlapText($('.c-status', soon), 6), 'ХҮЛЭЭЖ'],
-  ]);
-
-  list.after(h('p', { class: 'dep-foot' }, `<b>${works.length}</b> нислэг хөөрсөн · KH404 таны багийг хүлээж байна · мөр дээр дарна уу`));
-
-  // Самбар харагдахад мөр бүр ээлжлэн эргэнэ
-  const io = new IntersectionObserver(([e]) => {
-    if (!e.isIntersecting) return;
-    io.disconnect();
-    flaps.forEach((row, r) => setTimeout(() => row.forEach(([f, txt]) => f.set(txt)), r * 450));
-  }, { threshold: 0.3 });
-  io.observe($('.departures'));
-}
-
-/* Суух тасалбар — <dialog> */
-function openPass(w, idx) {
-  const seat = `${12 + idx * 7}${'ACF'[idx % 3]}`;
-  const live = w.live.startsWith('http') ? w.live : new URL(w.live, location.href).href;
-  $('#passBody').innerHTML = `
-    <div class="pass-main">
-      <div class="pass-air"><span><img src="assets/logo.svg" alt="" width="20" height="20"> TERMINAL K</span><span>СУУХ ТАСАЛБАР · BOARDING PASS</span></div>
-      <figure class="pass-shot" style="margin:0"><img src="${esc(w.image)}" alt="${esc(w.title)} — дэлгэцийн зураг"></figure>
-      <h3 id="passTitle">${esc(w.title)}</h3>
-      <p>${esc(w.summary)}</p>
-      <ul class="hi">${w.highlights.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-      <ul class="chips">${w.stack.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-      <div class="pass-links">
-        <a class="btn btn-sign" href="${esc(live)}" target="_blank" rel="noopener">Live demo ↗</a>
-        ${w.repo
-          ? `<a class="btn btn-ghost" href="${esc(w.repo)}" target="_blank" rel="noopener">GitHub ↗</a>`
-          : `<span class="muted">🔒 ${esc(w.repoNote || 'Репо хаалттай')}</span>`}
-      </div>
-    </div>
-    <aside class="pass-stub">
-      <div><small>НИСЛЭГ</small><b>${esc(w.flight)}</b></div>
-      <div><small>ХААЛГА</small><b>${esc(w.gate)}</b></div>
-      <div><small>СУУДАЛ</small><b>${seat}</b></div>
-      <div class="barcode"></div>
-    </aside>`;
-  barcode($('#passBody .barcode'), seedOf(w.flight), 44);
-  const dlg = $('#passDialog');
-  dlg.showModal();
-  sound.chime();
-}
-
-function initDialog() {
-  const dlg = $('#passDialog');
-  $('#passClose').addEventListener('click', () => dlg.close());
-  // гадна талд (backdrop) дарахад хаагдана
-  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
-}
-
-/* ---------- D · Check-in ---------- */
-function initCheckin() {
-  const form = $('#checkinForm');
-  const ticket = $('#ticket');
-  barcode($('#barcode'), 42, 30);
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = $('#fName').value.trim();
-    const msg = $('#fMsg').value.trim();
-    const purpose = $('#fPurpose').value;
-    const err = $('#formErr');
-
-    if (name.length < 2) { err.textContent = 'Зорчигчийн нэрээ бичнэ үү.'; $('#fName').focus(); return; }
-    if (msg.length < 5) { err.textContent = 'Мессеж хэт богино байна.'; $('#fMsg').focus(); return; }
-    err.textContent = '';
-
-    $('#tName').textContent = name;
-    $('#tFrom').textContent = name.slice(0, 3).toUpperCase();
-    $('#tPurpose').textContent = purpose;
-    $('#tDate').textContent = ubTime({ day: '2-digit', month: '2-digit', year: 'numeric' });
-    $('#tSeat').textContent = `${1 + (seedOf(name) % 30)}${'ABCDEF'[seedOf(msg) % 6]}`;
-    barcode($('#barcode'), seedOf(name + msg), 30);
-
-    const subject = `[Портфолио] ${purpose} — ${name}`;
-    $('#tSend').href = `mailto:${profile.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msg + '\n\n— ' + name)}`;
-
-    // хэвлэгчийн анимэйшн — дахин эхлүүлэхийн тулд классыг арилгаад reflow хийнэ
-    ticket.classList.remove('printing', 'printed');
-    void ticket.offsetWidth;
-    ticket.classList.add('printing');
-    sound.printer();
-    $('.printer').classList.add('has-ticket');
-    ticket.addEventListener('animationend', () => { ticket.classList.add('printed'); $('#tSend').focus({ preventScroll: true }); }, { once: true });
-    announce(`${name}, таны тасалбар хэвлэгдлээ. «Имэйлээр илгээх» товчийг дарна уу.`);
-  });
-
-  // Сошиал «хаалганууд»
-  const gates = $('#gates');
-  const emailGate = h('li');
-  const eb = h('button', { class: 'gate', type: 'button', title: 'Имэйл хуулах' },
-    `<b>D1</b><span><small>Имэйл · дарж хуулна</small><em>${esc(profile.email)}</em></span><span class="arrow">⧉</span>`);
-  eb.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(profile.email); announce('Имэйл хаяг хуулагдлаа ✓'); }
-    catch { location.href = `mailto:${profile.email}`; }
-  });
-  emailGate.append(eb);
-  gates.append(emailGate);
-
-  profile.socials.filter((s) => s.url).forEach((s, i) => {
-    gates.append(h('li', {},
-      `<a class="gate" href="${esc(s.url)}" target="_blank" rel="noopener"><b>D${i + 2}</b><span><small>${esc(s.label)}</small><em>${esc(s.handle)}</em></span><span class="arrow">→</span></a>`));
-  });
-}
-
-/* ---------- Навигаци: идэвхтэй хаалга + хэсэг тус бүрийн зарлал ---------- */
-function initNav() {
-  const links = $$('.signs a');
-  const said = new Set();
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach((e) => {
-      if (!e.isIntersecting) return;
-      const id = e.target.id;
-      links.forEach((a) => a.classList.toggle('active', a.getAttribute('href') === `#${id}`));
-      const gate = e.target.dataset.gate;
-      if (!said.has(gate) && gate !== 'hero') { said.add(gate); announce(announcements[gate]); }
+  let f = 0, t = 0, last = 0;
+  (function tick(now) {
+    t = now / 1000;
+    if (now - last > 90) { f = (f + 1) % 4; last = now; }
+    cvs.forEach((x) => {
+      x.setTransform(1, 0, 0, 1, 0, 0);
+      x.clearRect(0, 0, 78, 60);
+      x.scale(3, 3);
+      drawKhulan(x, 0, Math.round(Math.abs(Math.sin(t * 6)) * -1), 1, 'run', f, false, t);
     });
-  }, { rootMargin: '-45% 0px -50% 0px' });
-  $$('main > section').forEach((s) => io.observe(s));
-
-  // гарч ирэх анимэйшн
-  const rv = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && e.target.classList.add('in')), { threshold: 0.12 });
-  $$('.sec-head, .departures, .desk, .printer, .gates').forEach((el) => { el.classList.add('reveal'); rv.observe(el); });
+    requestAnimationFrame(tick);
+  })(0);
 }
 
-/* ---------- Easter eggs ---------- */
+/* ---------- Нууцууд ---------- */
 function initEasterEggs() {
-  // 1) Konami код → онгоц баннер чирч нисэнэ
   const code = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
   let pos = 0;
   addEventListener('keydown', (e) => {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     pos = k === code[pos] ? pos + 1 : k === code[0] ? 1 : 0;
-    if (pos === code.length) { pos = 0; flyover(); }
-  });
-
-  // 2) Логог 5 удаа дарвал «турбулент»
-  let clicks = 0, t;
-  $('#logo').addEventListener('click', () => {
-    clicks++;
-    clearTimeout(t);
-    t = setTimeout(() => (clicks = 0), 1200);
-    if (clicks === 5) {
-      clicks = 0;
-      document.body.classList.add('turbulence');
-      announce('Турбулент! Суудлын бүсээ бүслээрэй. (Нууц #2 олдлоо 🎉)');
-      setTimeout(() => document.body.classList.remove('turbulence'), 1500);
+    if (pos === code.length) {
+      pos = 0;
+      game.turbo = !game.turbo;
+      const f = $('#flyover');
+      f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+      sfx.secret();
+      toast(game.turbo ? 'ТУРБО ГОРИМ!' : 'Турбо унтарлаа', game.turbo ? 'Сакура сүүлтэй хурдан хулан 🌸' : '', '⚡', '#b3122e');
     }
   });
-
-  // 3) Developer console-д мэндчилгээ
-  console.log('%c✈ TERMINAL K ', 'background:#ffcf24;color:#111;font:800 16px monospace;padding:6px 10px;border-radius:4px');
-  console.log('Кодыг сонирхож байгаад баярлалаа! Нууц: Konami код (↑↑↓↓←→←→BA) болон лого дээр 5 дарах.');
-}
-function flyover() {
-  const f = $('#flyover');
-  f.classList.remove('go');
-  void f.offsetWidth;
-  f.classList.add('go');
-  sound.whoosh();
-  announce('Нууц #1 олдлоо! Онгоц таны дэлгэцээр нисэж өнгөрлөө ✈');
+  console.log('%c✎ Sketchbook Quest ', 'background:#b3122e;color:#fff;font:800 15px sans-serif;padding:6px 10px;border-radius:6px');
+  console.log('Кодыг сонирхсонд баярлалаа! Нууц: Konami код, номон тавцангийн дээрх үл харагдах ном.');
 }
 
 /* ---------- Эхлүүлэх ---------- */
-$('#year').textContent = new Date().getFullYear();
-initTheme();
-initSound();
-tickClock();
-setInterval(tickClock, 15000);
-initPassport();
-initDepartures();
-initDialog();
-initCheckin();
-initNav();
-initEasterEggs();
-initHero();
-setTimeout(() => announce(announcements.hero), 1400);
+function init() {
+  game = new Game($('#screen'), gameHooks());
+  window.game = game; // DevTools-оос шалгахад хэрэгтэй
+  initTheme(game);
+  initDialogs();
+  splitLetters();
+  $('#coverTag').textContent = profile.tagline;
+  $$('.year').forEach((y) => (y.textContent = new Date().getFullYear()));
+  bindTouch($('#pad'));
+  initReading();
+  initMagnetic();
+  initEasterEggs();
+  spriteLoop();
+
+  // Бүлгийн цэгүүд (HUD дээрх газрын зураг)
+  const map = $('#map');
+  sections.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.textContent = s.id;
+    b.dataset.label = s.label;
+    b.style.left = (i / (sections.length - 1)) * 100 + '%';
+    b.setAttribute('aria-label', `Бүлэг ${s.id}: ${s.label} руу шилжих`);
+    b.addEventListener('click', () => { game.warp(i); b.blur(); });
+    map.append(b);
+  });
+
+  $('#prompt').addEventListener('click', () => { if (game.cur.obj) game.open(game.cur.obj); });
+  $('#playBtn').addEventListener('click', (e) => setMode('game', e));
+  $$('[data-go]').forEach((b) => b.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeDialog($('#finish'));
+    setMode(b.dataset.go, e);
+  }));
+  $('#againBtn').addEventListener('click', () => { closeDialog($('#finish')); game.reset(); $('#coinCount').textContent = 0; game.start(); });
+  $('#finish').addEventListener('close', () => { if (body.dataset.mode === 'game') game.paused = false; });
+
+  const sb = $('#soundBtn');
+  const toggleSound = () => { const on = sfx.toggle(); sb.setAttribute('aria-pressed', on); toast(on ? 'Дуу асаалаа ♪' : 'Дуу унтраалаа', on ? 'Пентатоник аялгуу тоглож байна' : '', '♪', '#7a5238'); };
+  sb.addEventListener('click', toggleSound);
+
+  addEventListener('keydown', (e) => {
+    if (e.target.closest?.('input, textarea, select')) return;
+    if (body.dataset.mode === 'start' && e.key === 'Enter') { e.preventDefault(); setMode('game'); }
+    if (body.dataset.mode === 'game' && (e.key === 'm' || e.key === 'M')) toggleSound();
+  });
+
+  // Шууд унших горимоор нээх (жишээ нь бүтээлийн хуудаснаас «буцах» үед)
+  if (location.hash.startsWith('#reading') || location.hash.startsWith('#r-')) {
+    body.dataset.mode = 'reading';
+    history.replaceState(null, '', '#reading');
+  }
+  input.enabled = false;
+  addEventListener('hashchange', () => { if (location.hash === '#reading') setMode('reading'); });
+}
+
+init();
