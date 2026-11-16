@@ -3,138 +3,185 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Cherry Billiards — Хулан</title>
-<meta name="description" content="Хөтөч дээрх биллиардын тоглоом: жинхэнэ мөргөлдөөний физик, чиглэл тааруулах шугам, оноо." />
+<title>Cherry Billiards · 8-Ball — Хатанбаатар Хулан</title>
+<meta name="description" content="Олон улсын 8-ball дүрэмтэй биллиард: компьютер эсвэл 2 тоглогч, чиглэлийн шугам, ball in hand." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23b3122e'/><circle cx='32' cy='32' r='18' fill='%23111'/><circle cx='32' cy='32' r='8' fill='%23fff'/><text x='32' y='36' font-size='11' text-anchor='middle' font-family='Arial' font-weight='700'>8</text></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Dela+Gothic+One&family=Nunito:wght@600;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Dela+Gothic+One&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet" />
 <style>
-  :root { --paper: #fbf7f0; --ink: #3b2a20; --brown: #8a6a52; --cherry: #b3122e; --f-title: 'Dela Gothic One', 'Nunito', sans-serif; --f-body: 'Nunito', system-ui, sans-serif; }
+  :root { --paper: #fbf7f0; --ink: #3b2a20; --brown: #8a6a52; --cherry: #b3122e; --gold: #ffd36e; --f-title: 'Dela Gothic One', 'Nunito', sans-serif; --f-body: 'Nunito', system-ui, sans-serif; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(1200px 700px at 50% 40%, #3a2a22, #1b1310 70%); color: var(--paper); font: 600 15px/1.4 var(--f-body); }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(1200px 700px at 50% 45%, #3a2a22, #1b1310 70%); color: var(--paper); font: 700 15px/1.4 var(--f-body); user-select: none; -webkit-user-select: none; }
   canvas { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; }
 
-  .hud {
-    position: fixed; z-index: 3; left: 0; right: 0; top: 0;
-    display: flex; align-items: center; gap: 14px; padding: 12px 16px;
-    pointer-events: none;
+  /* ---- Дээд мөр: 2 тоглогч ---- */
+  .hud { position: fixed; z-index: 3; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 10px; padding: max(10px, env(safe-area-inset-top)) 14px 8px; pointer-events: none; }
+  .hud > * { pointer-events: auto; }
+  .back { width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 12px; background: rgba(251,247,240,.1); border: 1px solid rgba(251,247,240,.18); transition: transform .2s; }
+  .back:hover { transform: translateX(-3px); }
+  .players { flex: 1; display: flex; justify-content: center; align-items: center; gap: 10px; }
+  .pl {
+    display: flex; align-items: center; gap: 10px; min-width: 0; padding: 7px 12px 7px 8px; border-radius: 14px;
+    background: rgba(251,247,240,.07); border: 2px solid rgba(251,247,240,.14); transition: background .3s, border-color .3s, transform .3s;
   }
-  .hud a { pointer-events: auto; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; background: rgba(251,247,240,.1); border: 1px solid rgba(251,247,240,.18); transition: transform .2s, background .2s; }
-  .hud a:hover { transform: translateX(-3px); background: rgba(251,247,240,.2); }
-  .brand { font: 400 18px/1 var(--f-title); letter-spacing: .03em; }
-  .brand span { color: #ff6b81; }
-  .stats { margin-left: auto; display: flex; gap: 8px; }
-  .stat { background: rgba(251,247,240,.09); border: 1px solid rgba(251,247,240,.16); border-radius: 12px; padding: 7px 11px; text-align: center; min-width: 64px; }
-  .stat small { display: block; font: 800 10px/1 var(--f-body); letter-spacing: .12em; opacity: .65; text-transform: uppercase; }
-  .stat b { font: 400 18px/1.2 var(--f-title); display: inline-block; }
-  .stat b.bump { animation: bump .4s cubic-bezier(.3,1.8,.5,1); }
-  @keyframes bump { 40% { transform: scale(1.45); color: #ff6b81; } }
-  .reset { pointer-events: auto; border: 0; border-radius: 12px; background: var(--cherry); color: #fff; font: 800 13px/1 var(--f-body); padding: 0 14px; cursor: pointer; transition: transform .15s, filter .2s; }
-  .reset:hover { filter: brightness(1.12); } .reset:active { transform: scale(.94); }
+  .pl.turn { background: rgba(179,18,46,.35); border-color: #ff6b81; transform: translateY(2px); box-shadow: 0 0 0 4px rgba(255,107,129,.15); }
+  .pl .av { width: 32px; height: 32px; flex: none; border-radius: 10px; display: grid; place-items: center; background: var(--paper); color: var(--ink); font: 400 14px/1 var(--f-title); }
+  .pl.turn .av { background: #ff6b81; color: #fff; animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(1.1); } }
+  .pl b { display: block; font-size: 14px; white-space: nowrap; }
+  .pl small { display: block; font-size: 11px; opacity: .7; white-space: nowrap; }
+  .mini { display: flex; gap: 2px; margin-top: 3px; min-height: 12px; }
+  .mini i { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0,0,0,.35); }
+  .vs { font: 400 13px/1 var(--f-title); opacity: .6; }
+  .tools { display: flex; gap: 6px; }
+  .tbtn { height: 38px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(251,247,240,.2); background: rgba(251,247,240,.1); color: var(--paper); font: 800 13px/1 var(--f-body); cursor: pointer; transition: transform .15s, background .2s; white-space: nowrap; }
+  .tbtn:hover { background: rgba(251,247,240,.2); } .tbtn:active { transform: scale(.94); }
+  .tbtn.red { background: var(--cherry); border-color: var(--cherry); }
+
+  /* ---- Хүчний мөр (8 Ball Pool шиг доош татаж тавина) ---- */
+  .power {
+    position: fixed; z-index: 3; left: max(14px, env(safe-area-inset-left)); top: 50%; transform: translateY(-46%);
+    width: 54px; height: min(46vh, 320px); border-radius: 18px; padding: 8px;
+    background: rgba(27,19,16,.75); border: 2px solid rgba(251,247,240,.2); touch-action: none; cursor: grab;
+    transition: opacity .3s;
+  }
+  .power.off { opacity: .35; pointer-events: none; }
+  .power .track { position: relative; width: 100%; height: 100%; border-radius: 12px; overflow: hidden; background: linear-gradient(#ff3b3b, #ffb84d 45%, #5ddc7a); }
+  .power .shade { position: absolute; left: 0; right: 0; top: 0; background: rgba(27,19,16,.85); height: 100%; transition: height .05s; }
+  .power .cue { position: absolute; left: 50%; width: 10px; margin-left: -5px; top: -8px; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #c79a6b, #f3e6cf 50%, #c79a6b); box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .power .cue::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 10px; border-radius: 0 0 6px 6px; background: #3b6ea5; }
+  .power .lbl { position: absolute; left: 50%; bottom: -26px; transform: translateX(-50%); font: 800 11px/1 var(--f-body); opacity: .7; white-space: nowrap; }
 
   .msg {
     position: fixed; z-index: 4; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.6); opacity: 0;
-    font: 400 clamp(26px, 6vw, 52px)/1 var(--f-title); color: #fff; text-shadow: 0 4px 0 var(--cherry), 0 10px 30px rgba(0,0,0,.5);
-    pointer-events: none; white-space: nowrap; transition: transform .45s cubic-bezier(.2,1.6,.3,1), opacity .3s;
+    font: 400 clamp(22px, 5vw, 44px)/1.1 var(--f-title); color: #fff; text-align: center; text-shadow: 0 4px 0 var(--cherry), 0 10px 30px rgba(0,0,0,.6);
+    pointer-events: none; transition: transform .45s cubic-bezier(.2,1.6,.3,1), opacity .3s; max-width: 90vw;
   }
+  .msg small { display: block; margin-top: 6px; font: 800 15px/1.3 var(--f-body); text-shadow: 0 2px 8px rgba(0,0,0,.8); }
   .msg.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  .msg.foul { color: #ffd6dc; }
+  .help { position: fixed; z-index: 3; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-50%); font: 700 21px/1.1 'Caveat', cursive; color: rgba(251,247,240,.8); pointer-events: none; text-align: center; white-space: nowrap; }
 
-  .help { position: fixed; z-index: 3; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); font: 700 22px/1 'Caveat', cursive; color: rgba(251,247,240,.75); pointer-events: none; white-space: nowrap; transition: opacity .5s; }
-
-  .win {
-    position: fixed; z-index: 5; inset: 0; display: grid; place-items: center; background: rgba(27,19,16,.6); backdrop-filter: blur(4px);
-    opacity: 0; pointer-events: none; transition: opacity .4s;
-  }
-  .win.show { opacity: 1; pointer-events: auto; }
-  .card { background: var(--paper); color: var(--ink); border-radius: 22px; padding: 28px 30px; text-align: center; max-width: 340px; transform: translateY(30px) rotate(-2deg); transition: transform .6s cubic-bezier(.2,1.4,.3,1); box-shadow: 0 30px 60px rgba(0,0,0,.4); }
-  .win.show .card { transform: none; }
-  .card h2 { margin: 0 0 6px; font: 400 30px/1.1 var(--f-title); color: var(--cherry); }
-  .card p { margin: 0 0 18px; color: var(--brown); }
-  .card .big { font: 400 46px/1 var(--f-title); color: var(--ink); margin: 6px 0 2px; }
-  .card button { border: 0; border-radius: 14px; background: var(--ink); color: var(--paper); font: 800 15px/1 var(--f-body); padding: 13px 20px; cursor: pointer; transition: transform .15s; }
+  .overlay { position: fixed; z-index: 6; inset: 0; display: grid; place-items: center; background: rgba(27,19,16,.62); backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity .4s; }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+  .card { background: var(--paper); color: var(--ink); border-radius: 22px; padding: 26px 28px; text-align: center; max-width: 380px; width: calc(100vw - 32px); transform: translateY(30px) rotate(-2deg); transition: transform .6s cubic-bezier(.2,1.4,.3,1); box-shadow: 0 30px 60px rgba(0,0,0,.45); }
+  .overlay.show .card { transform: none; }
+  .card h2 { margin: 0 0 6px; font: 400 28px/1.1 var(--f-title); color: var(--cherry); }
+  .card p { margin: 0 0 16px; color: var(--brown); }
+  .card .opts { display: grid; gap: 10px; }
+  .card button { border: 0; border-radius: 14px; background: var(--ink); color: var(--paper); font: 800 15px/1 var(--f-body); padding: 14px 18px; cursor: pointer; transition: transform .15s; }
+  .card button.alt { background: var(--cherry); }
   .card button:hover { transform: translateY(-2px); }
-  @media (max-width: 560px) { .brand { display: none; } .stat { min-width: 54px; padding: 6px 8px; } }
+  .rules { text-align: left; font-size: 13px; color: var(--brown); margin: 14px 0 0; padding-left: 18px; line-height: 1.5; }
+  @media (max-width: 640px) {
+    .pl { padding: 5px 8px 5px 5px; gap: 6px; } .pl .av { width: 26px; height: 26px; font-size: 12px; }
+    .pl small { display: none; } .vs { display: none; } .tools .tbtn.hide-m { display: none; }
+    .power { width: 44px; }
+  }
 </style>
 </head>
 <body>
   <canvas id="c"></canvas>
 
   <header class="hud">
-    <a href="../../#reading" aria-label="Портфолио руу буцах"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbf7f0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
-    <div class="brand">CHERRY <span>BILLIARDS</span></div>
-    <div class="stats">
-      <div class="stat"><small>Цохилт</small><b id="shots">0</b></div>
-      <div class="stat"><small>Үлдсэн</small><b id="left">15</b></div>
-      <div class="stat"><small>Шилдэг</small><b id="best">—</b></div>
-      <button class="reset" id="reset" title="Шинээр эхлэх">↻</button>
+    <a class="back" href="../../#reading" aria-label="Портфолио руу буцах"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbf7f0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <div class="players">
+      <div class="pl" id="p0"><span class="av">1</span><span><b id="n0">Та</b><small id="g0">Ширээ нээлттэй</small><span class="mini" id="m0"></span></span></div>
+      <span class="vs">VS</span>
+      <div class="pl" id="p1"><span class="av">2</span><span><b id="n1">Компьютер</b><small id="g1">Ширээ нээлттэй</small><span class="mini" id="m1"></span></span></div>
+    </div>
+    <div class="tools">
+      <button class="tbtn hide-m" id="rulesBtn">Дүрэм</button>
+      <button class="tbtn red" id="newBtn">↻ Шинэ</button>
     </div>
   </header>
 
-  <div class="msg" id="msg"></div>
-  <div class="help" id="help">Цагаан бөмбөгнөөс арагш чирээд тавь ➜ цохилт</div>
+  <div class="power" id="power" aria-label="Цохилтын хүч — доош чирээд тавина">
+    <div class="track"><div class="shade" id="shade"></div><div class="cue" id="cueBar"></div></div>
+    <span class="lbl">ХҮЧ</span>
+  </div>
 
-  <div class="win" id="win">
+  <div class="msg" id="msg"></div>
+  <div class="help" id="help">Ширээн дээр чирж чиглэлээ тааруул · зүүн талын саваагаар доош татаж тавь</div>
+
+  <div class="overlay show" id="start">
     <div class="card">
-      <h2>Ширээ цэвэрлэгдлээ!</h2>
-      <p>15 бөмбөгийг бүгдийг нь халаасалсан</p>
-      <div class="big" id="winShots">0</div>
-      <p id="winNote">цохилт</p>
-      <button id="again">Дахин тоглох ↻</button>
+      <h2>8-BALL 🎱</h2>
+      <p>Олон улсын дүрэмтэй биллиард</p>
+      <div class="opts">
+        <button id="vsCpu" class="alt">Компьютертэй тоглох</button>
+        <button id="vs2p">2 тоглогч (нэг төхөөрөмж)</button>
+      </div>
+      <ul class="rules">
+        <li>Эхний халаасалсан бөмбөгөөр <b>бүтэн (1–7)</b> эсвэл <b>судалтай (9–15)</b> гэж хуваагдана.</li>
+        <li>Цохилт бүрт <b>эхлээд өөрийн</b> бөмбөгийг мөргөнө. Бүгдийг нь халаасалсны дараа <b>8</b>-ыг оруулбал ялна.</li>
+        <li><b>Алдаа (foul):</b> цагаан унах, өөр бөмбөг эхэлж мөргөх, юу ч мөргөхгүй байх, мөргөлтийн дараа нэг ч бөмбөг хананд хүрэхгүй байх. Алдаа гарвал өрсөлдөгч <b>«ball in hand»</b> буюу цагаан бөмбөгийг хүссэн газраа тавина.</li>
+        <li>8-ыг эрт эсвэл алдаатай оруулбал <b>хожигдоно</b>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="overlay" id="win">
+    <div class="card">
+      <h2 id="winTitle">Та яллаа! 🏆</h2>
+      <p id="winNote"></p>
+      <div class="opts"><button class="alt" id="again">Дахин тоглох ↻</button><button id="menu">Горим солих</button></div>
     </div>
   </div>
 
 <script>
 /* =====================================================================
-   Cherry Billiards — 2D биллиардын физик (Canvas 2D, ямар ч сангүй).
-   Ширээний «дотоод» координат: 1000 × 500. Дэлгэцэнд тааруулж томруулна,
-   гар утсан дээр (босоо) 90° эргүүлж харуулна.
+   Cherry Billiards — олон улсын 8-ball дүрэмтэй 2D биллиард.
+   Физик: уян мөргөлдөөн (тэнцүү масс), үрэлт, хана, халаас.
+   Дүрэм: бүлэг (бүтэн/судалтай), алдаа (foul), ball in hand, 8-аар ялах.
+   Ширээний «дотоод» координат 1000 × 500; гар утсан дээр 90° эргэнэ.
    ===================================================================== */
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
+const $ = (id) => document.getElementById(id);
 const TW = 1000, TH = 500, R = 12.5, RAIL = 46, POCKET = 25;
-const FRICTION = 0.9915, STOP = 0.035, SUB = 4;
-
-const pockets = [
-  [0, 0], [TW / 2, -6], [TW, 0],
-  [0, TH], [TW / 2, TH + 6], [TW, TH],
-];
+const FRICTION = 0.9915, STOP = 0.035, SUB = 4, MAXV = 27;
+const pockets = [[0, 0], [TW / 2, -6], [TW, 0], [0, TH], [TW / 2, TH + 6], [TW, TH]];
 const COLORS = ['#fff', '#f2c14e', '#2f5fb3', '#d6332f', '#6a3fa0', '#f08a24', '#2e8b57', '#7a1f1f', '#151515'];
+const groupOf = (n) => (n === 0 ? 'cue' : n === 8 ? 'eight' : n < 8 ? 'solid' : 'stripe');
+const GROUP_MN = { solid: 'Бүтэн (1–7)', stripe: 'Судалтай (9–15)' };
 
-let balls, shots, potted, aiming = null, moving = false, cueFoul = false, shotPots = 0, startTime;
+let balls = [], players, turn = 0, mode = 'cpu', phase = 'menu';
+let aimAngle = 0, power = 0, ballInHand = false, isBreak = true;
+let shot = null;        // одоогийн цохилтын бүртгэл (дүрэм шалгахад)
+let dragging = null;    // 'aim' | 'ball' | 'power'
 let view = { s: 1, rot: false, ox: 0, oy: 0 };
-let best = +localStorage.getItem('billiards-best') || 0;
 
-/* ---------- Бөмбөг өрөх ---------- */
+/* ---------- Өрөх ---------- */
 function rack() {
   balls = [{ n: 0, x: 250, y: TH / 2, vx: 0, vy: 0, in: false }];
-  // гурвалжин: 5 эгнээ, 8 нь голд
-  const order = [1, 9, 2, 10, 8, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15];
+  // 8 нь голд, гурвалжны хоёр арын булан нэг бүтэн + нэг судалтай (дүрмээр)
+  const order = [1, 10, 3, 12, 8, 6, 4, 15, 9, 14, 11, 2, 13, 7, 5];
   let i = 0;
-  for (let row = 0; row < 5; row++) {
-    for (let k = 0; k <= row; k++) {
-      balls.push({
-        n: order[i++],
-        x: 720 + row * R * 1.75,
-        y: TH / 2 + (k - row / 2) * R * 2.02,
-        vx: 0, vy: 0, in: false, spin: Math.random() * 6,
-      });
-    }
-  }
-  shots = 0; potted = []; startTime = performance.now();
-  ui();
+  for (let row = 0; row < 5; row++)
+    for (let k = 0; k <= row; k++)
+      balls.push({ n: order[i++], x: 740 + row * R * 1.75, y: TH / 2 + (k - row / 2) * R * 2.02, vx: 0, vy: 0, in: false, spin: Math.random() * 6 });
+  players = [
+    { name: mode === 'cpu' ? 'Та' : 'Тоглогч 1', group: null, cpu: false },
+    { name: mode === 'cpu' ? 'Компьютер' : 'Тоглогч 2', group: null, cpu: mode === 'cpu' },
+  ];
+  turn = 0; isBreak = true; ballInHand = false; aimAngle = 0; power = 0;
+  phase = 'aim';
+  hud();
+  flash('Эхний цохилт (break)', `${players[0].name} эхэлнэ`);
 }
 
-/* ---------- Дэлгэцийн хэмжээ, эргүүлэлт ---------- */
+/* ---------- Дэлгэц ---------- */
 function resize() {
   const dpr = Math.min(devicePixelRatio || 1, 2);
   cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
-  const availW = innerWidth - 24, availH = innerHeight - 130;
-  view.rot = availH > availW * 1.15;              // босоо дэлгэц бол эргүүлнэ
+  const availW = innerWidth - 90, availH = innerHeight - 140;
+  view.rot = availH > availW * 1.15;
   const fullW = TW + RAIL * 2, fullH = TH + RAIL * 2;
   const [w, h] = view.rot ? [fullH, fullW] : [fullW, fullH];
   view.s = Math.min(availW / w, availH / h) * dpr;
-  view.ox = cv.width / 2; view.oy = (innerHeight / 2 + 20) * dpr;
+  view.ox = (innerWidth / 2 + 30) * dpr; view.oy = (innerHeight / 2 + 22) * dpr;
 }
 function applyView() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -143,220 +190,346 @@ function applyView() {
   ctx.scale(view.s, view.s);
   ctx.translate(-TW / 2, -TH / 2);
 }
-// дэлгэцийн цэг → ширээний координат (урвуу хувиргалт)
 function toTable(cx, cy) {
   applyView();
-  const m = ctx.getTransform().invertSelf();
-  const dpr = cv.width / innerWidth;
+  const m = ctx.getTransform().invertSelf(), dpr = cv.width / innerWidth;
   const p = m.transformPoint(new DOMPoint(cx * dpr, cy * dpr));
   return { x: p.x, y: p.y };
 }
 
 /* ---------- Физик ---------- */
-function step() {
+function physics() {
   for (let s = 0; s < SUB; s++) {
     for (const b of balls) {
       if (b.in) continue;
       b.x += b.vx / SUB; b.y += b.vy / SUB;
       b.spin = (b.spin || 0) + Math.hypot(b.vx, b.vy) / SUB / R;
-      // халаас
-      for (const [px, py] of pockets) {
-        if (Math.hypot(b.x - px, b.y - py) < POCKET) { pot(b); break; }
-      }
+      for (const [px, py] of pockets) if (Math.hypot(b.x - px, b.y - py) < POCKET) { pot(b); break; }
       if (b.in) continue;
-      // хана (халаасны амны хажууд биш үед)
       const nearCorner = (y) => y < POCKET * 1.3 || y > TH - POCKET * 1.3;
       const nearSide = (x) => x < POCKET * 1.3 || x > TW - POCKET * 1.3 || Math.abs(x - TW / 2) < POCKET * 1.1;
-      if (b.x < R && !nearCorner(b.y)) { b.x = R; b.vx = -b.vx * 0.8; thud(b.vx); }
-      if (b.x > TW - R && !nearCorner(b.y)) { b.x = TW - R; b.vx = -b.vx * 0.8; thud(b.vx); }
-      if (b.y < R && !nearSide(b.x)) { b.y = R; b.vy = -b.vy * 0.8; thud(b.vy); }
-      if (b.y > TH - R && !nearSide(b.x)) { b.y = TH - R; b.vy = -b.vy * 0.8; thud(b.vy); }
+      let hit = false;
+      if (b.x < R && !nearCorner(b.y)) { b.x = R; b.vx = -b.vx * 0.8; hit = true; }
+      if (b.x > TW - R && !nearCorner(b.y)) { b.x = TW - R; b.vx = -b.vx * 0.8; hit = true; }
+      if (b.y < R && !nearSide(b.x)) { b.y = R; b.vy = -b.vy * 0.8; hit = true; }
+      if (b.y > TH - R && !nearSide(b.x)) { b.y = TH - R; b.vy = -b.vy * 0.8; hit = true; }
+      if (hit) { thud(Math.hypot(b.vx, b.vy)); if (shot && shot.firstHit !== null) shot.rail = true; }
     }
-    // бөмбөг хоорондын мөргөлдөөн (ижил масс → нормаль чиглэлийн хурдыг солилцоно)
     for (let i = 0; i < balls.length; i++) {
       const a = balls[i]; if (a.in) continue;
       for (let j = i + 1; j < balls.length; j++) {
         const b = balls[j]; if (b.in) continue;
         const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
         if (d > 0 && d < R * 2) {
-          const nx = dx / d, ny = dy / d, overlap = R * 2 - d;
-          a.x -= nx * overlap / 2; a.y -= ny * overlap / 2;
-          b.x += nx * overlap / 2; b.y += ny * overlap / 2;
+          const nx = dx / d, ny = dy / d, ov = R * 2 - d;
+          a.x -= nx * ov / 2; a.y -= ny * ov / 2; b.x += nx * ov / 2; b.y += ny * ov / 2;
           const rel = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
           if (rel > 0) {
             const imp = rel * 0.97;
-            a.vx -= imp * nx; a.vy -= imp * ny;
-            b.vx += imp * nx; b.vy += imp * ny;
+            a.vx -= imp * nx; a.vy -= imp * ny; b.vx += imp * nx; b.vy += imp * ny;
             clack(rel);
+            // дүрэм: цагаан бөмбөг ЭХЛЭЭД аль бөмбөгийг мөргөсөн бэ?
+            if (shot && shot.firstHit === null && (a.n === 0 || b.n === 0)) shot.firstHit = a.n === 0 ? b.n : a.n;
           }
         }
       }
     }
   }
-  moving = false;
+  let moving = false;
   for (const b of balls) {
     if (b.in) continue;
     b.vx *= FRICTION; b.vy *= FRICTION;
-    if (Math.hypot(b.vx, b.vy) < STOP) { b.vx = b.vy = 0; } else moving = true;
+    if (Math.hypot(b.vx, b.vy) < STOP) b.vx = b.vy = 0; else moving = true;
   }
-  if (!moving && wasMoving) settle();
-  wasMoving = moving;
+  if (phase === 'moving' && !moving) evaluate();
 }
-let wasMoving = false;
 
 function pot(b) {
   b.in = true; b.vx = b.vy = 0;
   drop();
-  if (b.n === 0) { cueFoul = true; flash('Цагаан унав! +1'); return; }
-  potted.push(b.n); shotPots++;
-  ui(true);
-}
-// бүх бөмбөг зогссоны дараа
-function settle() {
-  if (shotPots >= 2) flash(shotPots === 2 ? 'ДАБЛ! ✦' : `${shotPots}x КОМБО! ✦✦`);
-  else if (shotPots === 1 && !cueFoul) flash(['Гоё! ✿', 'Яг онож!', 'Nice shot!'][Math.random() * 3 | 0]);
-  shotPots = 0;
-  if (cueFoul) {
-    cueFoul = false; shots++;
-    const cue = balls[0];
-    Object.assign(cue, { in: false, x: 250, y: TH / 2, vx: 0, vy: 0 });
-    while (balls.some((b) => b !== cue && !b.in && Math.hypot(b.x - cue.x, b.y - cue.y) < R * 2.2)) cue.y += R;
-    ui(true);
-  }
-  if (potted.length === 15) win();
+  if (shot) shot.potted.push(b.n);
 }
 
-/* ---------- Чиглүүлэх (чирээд тавих) ---------- */
-cv.addEventListener('pointerdown', (e) => {
-  if (moving || balls[0].in) return;
-  cv.setPointerCapture(e.pointerId);
-  aiming = { ...toTable(e.clientX, e.clientY) };
-  document.getElementById('help').style.opacity = 0;
-  ensureAudio();
-});
-cv.addEventListener('pointermove', (e) => { if (aiming) Object.assign(aiming, toTable(e.clientX, e.clientY)); });
-cv.addEventListener('pointerup', () => {
-  if (!aiming) return;
-  const a = aim();
-  aiming = null;
-  if (!a || a.power < 0.04) return;
+/* ---------- Цохилт ---------- */
+function shoot(p) {
+  if (phase !== 'aim' || p < 0.03) return;
   const cue = balls[0];
-  const v = a.power * 26;
-  cue.vx = a.dx * v; cue.vy = a.dy * v;
-  shots++; ui(true);
-  hit(a.power);
-});
-// цохих чиглэл: цагаан бөмбөгнөөс хуруу руу ЭСРЭГ (харвуул шиг)
-function aim() {
-  if (!aiming) return null;
-  const cue = balls[0];
-  const dx = cue.x - aiming.x, dy = cue.y - aiming.y, d = Math.hypot(dx, dy);
-  if (d < 4) return null;
-  return { dx: dx / d, dy: dy / d, power: Math.min(1, d / 260) };
+  const me = players[turn];
+  shot = { firstHit: null, rail: false, potted: [], groupLeft: me.group ? left(me.group) : null };
+  cue.vx = Math.cos(aimAngle) * p * MAXV; cue.vy = Math.sin(aimAngle) * p * MAXV;
+  hit(p);
+  phase = 'moving'; ballInHand = false; power = 0;
+  $('help').style.opacity = 0;
+  updatePower();
 }
+const left = (g) => balls.filter((b) => !b.in && groupOf(b.n) === g).length;
+
+/* ---------- Дүрэм шалгах (бүх бөмбөг зогссоны дараа) ---------- */
+function evaluate() {
+  const me = players[turn], opp = players[1 - turn];
+  const pots = shot.potted, cueIn = pots.includes(0), eightIn = pots.includes(8);
+  const objPots = pots.filter((n) => n !== 0 && n !== 8);
+  let foul = null;
+  const target = me.group ? (shot.groupLeft === 0 ? 'eight' : me.group) : null;
+
+  if (cueIn) foul = 'Цагаан бөмбөг халаасанд орлоо';
+  else if (shot.firstHit === null) foul = 'Ямар ч бөмбөг мөргөсөнгүй';
+  else if (target && groupOf(shot.firstHit) !== target) foul = target === 'eight' ? 'Эхлээд 8-ыг мөргөх ёстой' : 'Эхлээд өөрийн бөмбөгийг мөргөх ёстой';
+  else if (!target && shot.firstHit === 8 && !isBreak) foul = 'Нээлттэй ширээнд 8-ыг эхэлж мөргөхгүй';
+  else if (pots.length === 0 && !shot.rail) foul = 'Мөргөлтийн дараа хананд хүрээгүй';
+
+  // 8-ын бөмбөг
+  if (eightIn) {
+    if (isBreak) { respot8(); flash('8 break-д орлоо', '8-ыг буцааж байрлууллаа'); }
+    else if (!foul && target === 'eight') return gameOver(turn, `${me.name} 8-ыг оруулж яллаа!`);
+    else return gameOver(1 - turn, foul ? `${me.name} алдаатай үед 8-ыг оруулсан` : `${me.name} 8-ыг эрт оруулсан`);
+  }
+
+  // бүлэг хуваарилах (break-ийн дараа, алдаагүй үед, эхний халаасалсан бөмбөгөөр)
+  if (!me.group && !foul && !isBreak && objPots.length) {
+    me.group = groupOf(objPots[0]);
+    opp.group = me.group === 'solid' ? 'stripe' : 'solid';
+    flash(`${me.name}: ${GROUP_MN[me.group]}`, `${opp.name}: ${GROUP_MN[opp.group]}`);
+  }
+
+  const legalPot = objPots.some((n) => (me.group ? groupOf(n) === me.group : true));
+  isBreak = false;
+  if (cueIn) { const c = balls[0]; Object.assign(c, { in: false, x: 250, y: TH / 2, vx: 0, vy: 0 }); }
+
+  if (foul) {
+    turn = 1 - turn;
+    ballInHand = true;
+    flash('АЛДАА!', `${foul} → ${players[turn].name}: ball in hand`, true);
+  } else if (!legalPot) {
+    turn = 1 - turn;
+    if (!eightIn) flash(`${players[turn].name}-ийн ээлж`);
+  } else {
+    praise(objPots.length);
+  }
+  phase = 'aim';
+  shot = null;
+  // шинэ ээлжинд хамгийн ойрын хууль ёсны бөмбөг рүү чиглүүлнэ
+  const t = legalTargets()[0];
+  if (t) aimAngle = Math.atan2(t.y - balls[0].y, t.x - balls[0].x);
+  hud();
+}
+function respot8() {
+  const e = balls.find((b) => b.n === 8);
+  Object.assign(e, { in: false, x: 750, y: TH / 2, vx: 0, vy: 0 });
+  while (balls.some((b) => b !== e && !b.in && Math.hypot(b.x - e.x, b.y - e.y) < R * 2)) e.x += R * 2;
+}
+function praise(n) {
+  if (n >= 2) flash(n === 2 ? 'ДАБЛ! ✦' : `${n}x КОМБО! ✦✦`);
+  else flash(['Гоё! ✿', 'Яг онож!', 'Nice shot!', 'Үргэлжлүүл!'][Math.random() * 4 | 0]);
+}
+function gameOver(winner, why) {
+  phase = 'over';
+  const w = players[winner];
+  $('winTitle').textContent = w.cpu ? 'Компьютер яллаа 🤖' : `${w.name} яллаа! 🏆`;
+  $('winNote').textContent = why;
+  setTimeout(() => $('win').classList.add('show'), 700);
+  fanfare();
+  hud();
+}
+
+// одоогийн тоглогчийн мөргөх ёстой бөмбөгнүүд (ойроос нь эрэмбэлсэн)
+function legalTargets() {
+  const me = players[turn], cue = balls[0];
+  const target = me.group ? (left(me.group) === 0 ? 'eight' : me.group) : null;
+  return balls.filter((b) => !b.in && b.n !== 0 && (target ? groupOf(b.n) === target : b.n !== 8))
+    .sort((a, b) => Math.hypot(a.x - cue.x, a.y - cue.y) - Math.hypot(b.x - cue.x, b.y - cue.y));
+}
+
+/* ---------- Компьютер тоглогч ---------- */
+function cpuThink() {
+  if (phase !== 'aim' || !players[turn].cpu) return;
+  phase = 'cpu';
+  if (ballInHand) placeCueForCpu();
+  const best = bestShot();
+  const goal = best ? best.angle + (Math.random() - 0.5) * 0.03 : aimAngle;
+  const p = best ? best.power : 0.55;
+  // чиглэлээ аажмаар эргүүлж, хүчээ «татаж» байгаа мэт харуулна
+  const from = aimAngle, diff = Math.atan2(Math.sin(goal - from), Math.cos(goal - from));
+  const t0 = performance.now();
+  (function turnAim(now) {
+    const k = Math.min(1, (now - t0) / 700);
+    aimAngle = from + diff * (1 - (1 - k) ** 3);
+    if (k < 1) return requestAnimationFrame(turnAim);
+    const t1 = performance.now();
+    (function charge(n) {
+      const q = Math.min(1, (n - t1) / 500);
+      power = p * q; updatePower();
+      if (q < 1) return requestAnimationFrame(charge);
+      phase = 'aim'; shoot(p);
+    })(t1);
+  })(t0);
+}
+function pathClear(x1, y1, x2, y2, ignore) {
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);
+  for (const b of balls) {
+    if (b.in || ignore.includes(b)) continue;
+    const t = ((b.x - x1) * dx + (b.y - y1) * dy) / (L * L);
+    if (t < 0 || t > 1) continue;
+    if (Math.hypot(x1 + dx * t - b.x, y1 + dy * t - b.y) < R * 2) return false;
+  }
+  return true;
+}
+function bestShot() {
+  const cue = balls[0];
+  let best = null;
+  for (const t of legalTargets()) {
+    for (const [px, py] of pockets) {
+      const dx = px - t.x, dy = py - t.y, L = Math.hypot(dx, dy);
+      const gx = t.x - (dx / L) * R * 2, gy = t.y - (dy / L) * R * 2;   // «сүнс бөмбөг» байрлал
+      const ax = gx - cue.x, ay = gy - cue.y, aL = Math.hypot(ax, ay);
+      const cut = Math.acos(Math.max(-1, Math.min(1, (ax * dx + ay * dy) / (aL * L))));
+      if (cut > 1.25) continue;
+      if (!pathClear(cue.x, cue.y, gx, gy, [cue, t]) || !pathClear(t.x, t.y, px, py, [t])) continue;
+      const score = Math.cos(cut) ** 2 / (aL + L * 1.4);
+      if (!best || score > best.score) best = { score, angle: Math.atan2(ay, ax), power: Math.min(0.95, 0.3 + (aL + L) / 1700 + cut * 0.15) };
+    }
+  }
+  if (!best) { const t = legalTargets()[0]; if (t) best = { score: 0, angle: Math.atan2(t.y - cue.y, t.x - cue.x), power: 0.6 }; }
+  return best;
+}
+function placeCueForCpu() {
+  const cue = balls[0];
+  let bestPos = { x: cue.x, y: cue.y }, bestScore = -1;
+  for (let i = 0; i < 40; i++) {
+    const x = R + Math.random() * (TW - 2 * R), y = R + Math.random() * (TH - 2 * R);
+    if (!validSpot(x, y)) continue;
+    Object.assign(cue, { x, y });
+    const s = bestShot();
+    if (s && s.score > bestScore) { bestScore = s.score; bestPos = { x, y }; }
+  }
+  Object.assign(cue, bestPos);
+  ballInHand = false;
+}
+const validSpot = (x, y) => x > R && x < TW - R && y > R && y < TH - R && !balls.some((b) => b.n !== 0 && !b.in && Math.hypot(b.x - x, b.y - y) < R * 2.05);
+
+/* ---------- Оролт: ширээ (чиглэл, ball in hand), хүчний мөр ---------- */
+const human = () => phase === 'aim' && !players[turn].cpu;
+cv.addEventListener('pointerdown', (e) => {
+  ensureAudio();
+  if (!human()) return;
+  cv.setPointerCapture(e.pointerId);
+  const p = toTable(e.clientX, e.clientY), cue = balls[0];
+  dragging = ballInHand && Math.hypot(p.x - cue.x, p.y - cue.y) < R * 3 ? 'ball' : 'aim';
+  move(p);
+});
+cv.addEventListener('pointermove', (e) => { if (dragging === 'aim' || dragging === 'ball') move(toTable(e.clientX, e.clientY)); });
+cv.addEventListener('pointerup', () => { if (dragging !== 'power') dragging = null; });
+function move(p) {
+  const cue = balls[0];
+  if (dragging === 'ball') { if (validSpot(p.x, p.y)) { cue.x = p.x; cue.y = p.y; } return; }
+  if (Math.hypot(p.x - cue.x, p.y - cue.y) > 4) aimAngle = Math.atan2(p.y - cue.y, p.x - cue.x); // хуруу зүг рүү чиглэнэ
+}
+const pw = $('power');
+let pwTop = 0, pwH = 1;
+pw.addEventListener('pointerdown', (e) => {
+  if (!human()) return;
+  ensureAudio();
+  pw.setPointerCapture(e.pointerId);
+  const r = pw.getBoundingClientRect(); pwTop = r.top + 8; pwH = r.height - 16;
+  dragging = 'power'; power = 0; updatePower();
+});
+pw.addEventListener('pointermove', (e) => { if (dragging === 'power') { power = Math.max(0, Math.min(1, (e.clientY - pwTop) / pwH)); updatePower(); } });
+pw.addEventListener('pointerup', () => { if (dragging === 'power') { dragging = null; const p = power; shoot(p); if (p < 0.03) { power = 0; updatePower(); } } });
+function updatePower() {
+  $('shade').style.height = (1 - power) * 100 + '%';
+  $('cueBar').style.transform = `translateY(${power * 100}%)`;
+  pw.classList.toggle('off', !(human() || dragging === 'power' || phase === 'cpu'));
+}
+// гар: ← → нарийн эргүүлэх, Space дарж хүч цуглуулаад тавих
+let spaceT = 0;
+addEventListener('keydown', (e) => {
+  if (!human()) return;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { aimAngle -= e.shiftKey ? 0.02 : 0.004; e.preventDefault(); }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { aimAngle += e.shiftKey ? 0.02 : 0.004; e.preventDefault(); }
+  if (e.key === ' ' && !e.repeat) { spaceT = performance.now(); e.preventDefault(); }
+});
+addEventListener('keyup', (e) => { if (e.key === ' ' && spaceT && human()) { const p = Math.min(1, (performance.now() - spaceT) / 1200); spaceT = 0; shoot(p); } });
 
 /* ---------- Зурах ---------- */
 function draw() {
+  if (spaceT) { power = Math.min(1, (performance.now() - spaceT) / 1200); updatePower(); }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, cv.width, cv.height);
   applyView();
 
-  // модон хүрээ
   const wood = ctx.createLinearGradient(0, -RAIL, 0, TH + RAIL);
   wood.addColorStop(0, '#7a4e33'); wood.addColorStop(.5, '#5b3824'); wood.addColorStop(1, '#3e2617');
-  ctx.fillStyle = wood;
-  round(-RAIL, -RAIL, TW + RAIL * 2, TH + RAIL * 2, 28); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 2; ctx.stroke();
-
-  // cherry red даавуу + гэрэлтүүлэг
+  ctx.fillStyle = wood; round(-RAIL, -RAIL, TW + RAIL * 2, TH + RAIL * 2, 28); ctx.fill();
   const felt = ctx.createRadialGradient(TW / 2, TH / 2, 40, TW / 2, TH / 2, TW * 0.62);
   felt.addColorStop(0, '#c8173a'); felt.addColorStop(1, '#7c0c22');
-  ctx.fillStyle = felt;
-  ctx.fillRect(-8, -8, TW + 16, TH + 16);
-  // толгой шугам
+  ctx.fillStyle = felt; ctx.fillRect(-8, -8, TW + 16, TH + 16);
   ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(250, 0); ctx.lineTo(250, TH); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,.18)';
-  [[250, TH / 2], [750, TH / 2]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill(); });
-  // сувдан тэмдэглэгээ (diamonds)
   ctx.fillStyle = '#f3e6cf';
   for (let i = 1; i < 8; i++) if (i !== 4) { dot(i * TW / 8, -RAIL / 2); dot(i * TW / 8, TH + RAIL / 2); }
   for (let i = 1; i < 4; i++) { dot(-RAIL / 2, i * TH / 4); dot(TW + RAIL / 2, i * TH / 4); }
-  // халаас
-  for (const [px, py] of pockets) {
-    ctx.fillStyle = '#120b08'; ctx.beginPath(); ctx.arc(px, py, POCKET, 0, 7); ctx.fill();
-    ctx.strokeStyle = '#2a1a12'; ctx.lineWidth = 4; ctx.stroke();
-  }
+  for (const [px, py] of pockets) { ctx.fillStyle = '#120b08'; ctx.beginPath(); ctx.arc(px, py, POCKET, 0, 7); ctx.fill(); ctx.strokeStyle = '#2a1a12'; ctx.lineWidth = 4; ctx.stroke(); }
 
-  // чиглүүлэх шугам + «сүнс» бөмбөг
-  const a = aim();
   const cue = balls[0];
-  if (a && !cue.in) {
-    const hitInfo = castRay(cue.x, cue.y, a.dx, a.dy);
-    ctx.setLineDash([6, 8]);
-    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(cue.x, cue.y); ctx.lineTo(hitInfo.x, hitInfo.y); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.strokeStyle = 'rgba(255,255,255,.7)';
-    ctx.beginPath(); ctx.arc(hitInfo.x, hitInfo.y, R, 0, 7); ctx.stroke();
-    if (hitInfo.ball) { // бай бөмбөг хаашаа явахыг харуулна
-      const b = hitInfo.ball, nx = (b.x - hitInfo.x) / (2 * R), ny = (b.y - hitInfo.y) / (2 * R);
-      ctx.strokeStyle = 'rgba(255,214,110,.8)'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + nx * 90, b.y + ny * 90); ctx.stroke();
-    }
-  }
-
-  // бөмбөгнүүд
+  const showAim = (phase === 'aim' || phase === 'cpu') && !cue.in;
+  if (showAim) drawGuide(cue);
   for (const b of balls) if (!b.in) drawBall(b);
-
-  // цохиур (cue stick)
-  if (a && !cue.in) {
-    const back = 18 + a.power * 90;
-    ctx.save();
-    ctx.translate(cue.x, cue.y);
-    ctx.rotate(Math.atan2(a.dy, a.dx));
-    const g = ctx.createLinearGradient(-back - 420, 0, -back, 0);
-    g.addColorStop(0, '#2a1a12'); g.addColorStop(.6, '#c79a6b'); g.addColorStop(.97, '#f3e6cf'); g.addColorStop(1, '#3b6ea5');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(-back, -3); ctx.lineTo(-back - 420, -7); ctx.lineTo(-back - 420, 7); ctx.lineTo(-back, 3); ctx.closePath();
-    ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 6;
-    ctx.fill();
-    ctx.restore();
-    // хүчний хэмжүүр
-    ctx.save();
-    ctx.translate(cue.x, cue.y);
-    ctx.strokeStyle = `hsl(${120 - a.power * 120}, 80%, 60%)`; ctx.lineWidth = 4; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.arc(0, 0, R + 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * a.power); ctx.stroke();
-    ctx.restore();
+  if (ballInHand && phase === 'aim') {   // ball in hand тэмдэг
+    ctx.strokeStyle = 'rgba(255,211,110,.9)'; ctx.lineWidth = 2; ctx.setLineDash([4, 5]);
+    ctx.beginPath(); ctx.arc(cue.x, cue.y, R + 8 + Math.sin(performance.now() / 200) * 2, 0, 7); ctx.stroke(); ctx.setLineDash([]);
   }
-
-  // халаасалсан бөмбөгнүүдийн тавиур
-  potted.forEach((n, i) => drawBall({ n, x: 40 + i * (R * 2 + 6), y: TH + RAIL + 26, spin: 0 }, true));
+  if (showAim) drawCue(cue);
 }
 
-function drawBall(b, small) {
+// 8 Ball Pool маягийн чиглэлийн шугам: цагаан → сүнс бөмбөг, бай бөмбөгийн чиглэл, цагааны хазайлт
+function drawGuide(cue) {
+  const dx = Math.cos(aimAngle), dy = Math.sin(aimAngle);
+  const h = castRay(cue.x, cue.y, dx, dy);
+  const legal = h.ball ? legalTargets().includes(h.ball) : true;
+  ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cue.x + dx * R, cue.y + dy * R); ctx.lineTo(h.x, h.y); ctx.stroke();
+  ctx.beginPath(); ctx.arc(h.x, h.y, R, 0, 7);
+  ctx.strokeStyle = legal ? 'rgba(255,255,255,.9)' : '#ff5a5a'; ctx.lineWidth = 2; ctx.stroke();
+  if (!legal) { // буруу бөмбөг — загалмай
+    ctx.beginPath(); ctx.moveTo(h.x - 6, h.y - 6); ctx.lineTo(h.x + 6, h.y + 6); ctx.moveTo(h.x + 6, h.y - 6); ctx.lineTo(h.x - 6, h.y + 6); ctx.stroke();
+  }
+  if (h.ball) {
+    const b = h.ball, nx = (b.x - h.x) / (2 * R), ny = (b.y - h.y) / (2 * R);
+    const cut = Math.max(0, nx * dx + ny * dy);       // мөргөлтийн «бүтэн» байдал
+    ctx.strokeStyle = legal ? 'rgba(255,255,255,.9)' : 'rgba(255,90,90,.8)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(b.x + nx * R, b.y + ny * R); ctx.lineTo(b.x + nx * (R + 30 + 120 * cut), b.y + ny * (R + 30 + 120 * cut)); ctx.stroke();
+    // цагаан бөмбөг шүргэлтийн дараа хаашаа хазайх вэ (тангенс)
+    let tx = dx - nx * cut, ty = dy - ny * cut; const tl = Math.hypot(tx, ty);
+    if (tl > 0.05) { tx /= tl; ty /= tl; ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(h.x + tx * 60 * (1 - cut), h.y + ty * 60 * (1 - cut)); ctx.stroke(); }
+  }
+}
+function drawCue(cue) {
+  const back = 18 + power * 110;
   ctx.save();
-  ctx.translate(b.x, b.y);
-  if (!small) { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(3, 4, R, R * .9, 0, 0, 7); ctx.fill(); }
+  ctx.translate(cue.x, cue.y); ctx.rotate(aimAngle);
+  const g = ctx.createLinearGradient(-back - 440, 0, -back, 0);
+  g.addColorStop(0, '#2a1a12'); g.addColorStop(.55, '#c79a6b'); g.addColorStop(.96, '#f3e6cf'); g.addColorStop(1, '#3b6ea5');
+  ctx.fillStyle = g; ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 7;
+  ctx.beginPath(); ctx.moveTo(-back, -3); ctx.lineTo(-back - 440, -7.5); ctx.lineTo(-back - 440, 7.5); ctx.lineTo(-back, 3); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function drawBall(b) {
+  ctx.save(); ctx.translate(b.x, b.y);
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(3, 4, R, R * .9, 0, 0, 7); ctx.fill();
   ctx.beginPath(); ctx.arc(0, 0, R, 0, 7); ctx.clip();
   const n = b.n, col = COLORS[n > 8 ? n - 8 : n];
-  ctx.fillStyle = n > 8 ? '#fbf7f0' : col;
-  ctx.fillRect(-R, -R, R * 2, R * 2);
-  if (n > 8) { ctx.fillStyle = col; ctx.fillRect(-R, -R * 0.55, R * 2, R * 1.1); } // судалтай
+  ctx.fillStyle = n > 8 ? '#fbf7f0' : col; ctx.fillRect(-R, -R, R * 2, R * 2);
+  if (n > 8) { ctx.fillStyle = col; ctx.fillRect(-R, -R * 0.55, R * 2, R * 1.1); }
   if (n > 0) {
-    const off = Math.sin(b.spin || 0) * R * 0.35; // эргэлдэх мэт харагдуулна
+    const off = Math.sin(b.spin || 0) * R * 0.35;
     ctx.fillStyle = '#fbf7f0'; ctx.beginPath(); ctx.arc(off, 0, R * 0.48, 0, 7); ctx.fill();
-    ctx.fillStyle = '#1b1310'; ctx.font = `800 ${R * 0.75}px Nunito, Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(n, off, 0.5);
+    ctx.fillStyle = '#1b1310'; ctx.font = `800 ${R * 0.75}px Nunito, Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(n, off, 0.5);
   }
   const sh = ctx.createRadialGradient(-R * .4, -R * .45, 1, 0, 0, R * 1.1);
   sh.addColorStop(0, 'rgba(255,255,255,.75)'); sh.addColorStop(.25, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(0,0,0,.35)');
   ctx.fillStyle = sh; ctx.fillRect(-R, -R, R * 2, R * 2);
   ctx.restore();
 }
-
-// чиглэлийн шугам эхний бөмбөг/хананд хаана хүрэхийг тооцоолно
 function castRay(x, y, dx, dy) {
   let best = Infinity, ball = null;
   for (const b of balls) {
@@ -374,30 +547,43 @@ function castRay(x, y, dx, dy) {
   if (tw < best) { best = tw; ball = null; }
   return { x: x + dx * best, y: y + dy * best, ball };
 }
-
 const dot = (x, y) => { ctx.beginPath(); ctx.arc(x, y, 3.2, 0, 7); ctx.fill(); };
 function round(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
 
-/* ---------- UI ---------- */
-const $ = (id) => document.getElementById(id);
-function ui(bump) {
-  const set = (id, v) => { const el = $(id); if (el.textContent != v) { el.textContent = v; if (bump) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); } } };
-  set('shots', shots); set('left', 15 - potted.length); set('best', best || '—');
+/* ---------- HUD ---------- */
+function hud() {
+  players.forEach((p, i) => {
+    $('p' + i).classList.toggle('turn', i === turn && phase !== 'over');
+    $('n' + i).textContent = p.name;
+    $('g' + i).textContent = p.group ? GROUP_MN[p.group] : 'Ширээ нээлттэй';
+    const list = p.group ? balls.filter((b) => !b.in && groupOf(b.n) === p.group).map((b) => b.n) : [];
+    if (p.group && !list.length) list.push(8);
+    $('m' + i).innerHTML = list.map((n) => {
+      const c = COLORS[n > 8 ? n - 8 : n];
+      return `<i style="background:${n > 8 ? `linear-gradient(#fbf7f0 25%, ${c} 25% 75%, #fbf7f0 75%)` : c}"></i>`;
+    }).join('');
+  });
+  updatePower();
+  if (players[turn].cpu && phase === 'aim') setTimeout(cpuThink, 900);
 }
 let mt;
-function flash(t) { const m = $('msg'); m.textContent = t; m.classList.add('show'); clearTimeout(mt); mt = setTimeout(() => m.classList.remove('show'), 1100); }
-function win() {
-  const record = !best || shots < best;
-  if (record) { best = shots; localStorage.setItem('billiards-best', best); }
-  $('winShots').textContent = shots;
-  $('winNote').textContent = record ? 'цохилт — шинэ дээд амжилт! 🏆' : `цохилт (шилдэг: ${best})`;
-  $('win').classList.add('show');
-  fanfare();
+function flash(t, sub = '', foul = false) {
+  const m = $('msg');
+  m.innerHTML = `${t}${sub ? `<small>${sub}</small>` : ''}`;
+  m.classList.toggle('foul', foul);
+  m.classList.add('show');
+  clearTimeout(mt); mt = setTimeout(() => m.classList.remove('show'), foul ? 2200 : 1500);
 }
-$('again').onclick = () => { $('win').classList.remove('show'); rack(); };
-$('reset').onclick = () => { rack(); flash('Шинэ тоглолт'); };
 
-/* ---------- Дуу (Web Audio) ---------- */
+function start(m) { mode = m; $('start').classList.remove('show'); $('win').classList.remove('show'); rack(); }
+$('vsCpu').onclick = () => start('cpu');
+$('vs2p').onclick = () => start('2p');
+$('again').onclick = () => start(mode);
+$('menu').onclick = () => { $('win').classList.remove('show'); $('start').classList.add('show'); phase = 'menu'; };
+$('newBtn').onclick = () => { $('start').classList.add('show'); phase = 'menu'; };
+$('rulesBtn').onclick = () => { $('start').classList.add('show'); phase = 'menu'; };
+
+/* ---------- Дуу ---------- */
 let ac;
 function ensureAudio() { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); }
 function noise(dur, freq, gain, type = 'bandpass') {
@@ -411,23 +597,22 @@ function noise(dur, freq, gain, type = 'bandpass') {
 }
 let lastClack = 0;
 function clack(v) { const t = performance.now(); if (t - lastClack < 25) return; lastClack = t; noise(0.04, 3200, Math.min(0.9, v / 10)); }
-function thud(v) { if (Math.abs(v) > 0.8) noise(0.08, 220, Math.min(0.5, Math.abs(v) / 18), 'lowpass'); }
+function thud(v) { if (v > 0.8) noise(0.08, 220, Math.min(0.5, v / 18), 'lowpass'); }
 function hit(p) { noise(0.05, 1800, 0.25 + p * 0.5); }
 function drop() { noise(0.18, 140, 0.6, 'lowpass'); }
 function fanfare() {
   if (!ac) return;
   [523, 659, 784, 1047].forEach((f, i) => {
     const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + i * .12;
-    o.type = 'triangle'; o.frequency.value = f;
-    g.gain.setValueAtTime(.15, t); g.gain.exponentialRampToValueAtTime(.001, t + .5);
+    o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(.15, t); g.gain.exponentialRampToValueAtTime(.001, t + .5);
     o.connect(g).connect(ac.destination); o.start(t); o.stop(t + .55);
   });
 }
 
-/* ---------- Давталт ---------- */
-function loop() { step(); draw(); requestAnimationFrame(loop); }
+function loop() { if (phase !== 'menu') physics(); draw(); requestAnimationFrame(loop); }
 addEventListener('resize', resize);
-resize(); rack(); loop();
+resize(); mode = 'cpu'; rack(); phase = 'menu'; loop();
+window.pool = { get balls() { return balls; }, get phase() { return phase; }, get turn() { return turn; }, get players() { return players; }, shoot, bestShot, set aim(a) { aimAngle = a; }, get inHand() { return ballInHand; } }; // туршилтад
 </script>
 </body>
 </html>
