@@ -380,44 +380,69 @@ export function drawTree(ctx, x, t, reached) {
   }
 }
 
-/* ---------- ХУЛАН (тоглогч) — улаан берет, цагаан ороолттой ---------- */
-const K = { body: '#c99a5c', shade: '#b0834a', light: '#f3e6cf', dark: '#3b2a1a', muzzle: '#eadcc4', eye: '#120d0a' };
-const LEGS = {
-  idle: [[6, 0], [9, 0], [16, 0], [19, 0]],
-  run0: [[4, -2], [9, 1], [15, 2], [20, -2]],
-  run1: [[6, -1], [8, 1], [17, 1], [19, -1]],
-  run2: [[8, 2], [6, -2], [19, -2], [16, 2]],
-  run3: [[7, 1], [7, -1], [18, -1], [17, 1]],
+/* ---------- Баатар: буржгар үстэй зураач охин (cherry даашинз, харандаатай) ----------
+   26×20 пикселийн талбайд баруун тийш харсан байдлаар зурна; зүүн тийш явахад толин эргүүлнэ. */
+const G = {
+  hair: '#4a2c1d', hairHi: '#7a4a32', skin: '#f6d5bd', skinSh: '#e8b896', eye: '#2a1a12', blush: '#f2a7b5',
+  dress: '#b3122e', dressSh: '#7c0c22', collar: '#fffdf8', tights: '#3b2a20', shoe: '#5d3a20',
+};
+// хөлний байрлал: [арын хөл x, өргөлт], [урд хөл x, өргөлт]
+const GLEGS = {
+  idle: [[12, 0], [15, 0]],
+  run0: [[10, 1], [17, 0]],
+  run1: [[12, 0], [15, 1]],
+  run2: [[14, 0], [13, 1]],
+  run3: [[11, 1], [16, 0]],
+  jump: [[11, 2], [16, 1]],
 };
 export function drawKhulan(ctx, x, y, facing, state, frame, turbo, t) {
   ctx.save();
   ctx.translate(Math.round(x) + (facing < 0 ? 26 : 0), Math.round(y));
   if (facing < 0) ctx.scale(-1, 1);
-  if (turbo) { const cs = ['#b3122e', '#e48a9c', '#f4c7cf', '#fffdf8']; cs.forEach((c, i) => R(ctx, -14 - ((t * 60) % 4), 8 + i * 1.5, 14, 1, c)); }
+  if (turbo) { const cs = ['#b3122e', '#e48a9c', '#f4c7cf', '#fffdf8']; cs.forEach((c, i) => R(ctx, -10 - ((t * 60) % 4), 7 + i * 2, 16, 1, c)); }
 
-  const legs = state === 'jump' ? [[6, -3], [9, -3], [16, -3], [19, -3]] : state === 'run' ? LEGS['run' + frame] : LEGS.idle;
-  legs.forEach(([lx, dx], i) => {
-    const shade = i % 2 ? K.body : K.shade, len = state === 'jump' ? 3 : 4;
-    R(ctx, lx, 14, 2, 3, shade);
-    R(ctx, lx + Math.sign(dx), 17, 2, len - 1, shade);
-    R(ctx, lx + Math.sign(dx), 16 + len, 2, 1, K.dark);
+  const run = state === 'run';
+  const bob = run && frame % 2 ? 1 : 0;            // гүйхэд бие бага зэрэг дээш доош
+  const sw = run ? [1, 0, -1, 0][frame] : 0;        // буржгар үс, гар савлана
+
+  // хөл (бор оймс + гутал)
+  const legs = state === 'jump' ? GLEGS.jump : run ? GLEGS['run' + frame] : GLEGS.idle;
+  legs.forEach(([lx, lift], i) => {
+    R(ctx, lx, 16 - lift, 2, 3, i ? G.tights : '#2c1f17');
+    R(ctx, lx, 19 - lift, 3, 1, G.shoe);
   });
-  const tw = state === 'run' ? frame % 2 : 0;
-  R(ctx, 3, 8, 2, 1, K.body); R(ctx, 2, 9 + tw, 1, 3, K.body); R(ctx, 1, 11 + tw, 2, 3, K.dark);
-  R(ctx, 5, 7, 15, 7, K.body); R(ctx, 4, 8, 1, 5, K.body);
-  R(ctx, 7, 12, 11, 2, K.light);
-  R(ctx, 6, 7, 12, 1, K.dark);
-  R(ctx, 16, 3, 5, 6, K.body); R(ctx, 18, 2, 6, 5, K.body);
-  R(ctx, 23, 4, 3, 4, K.muzzle); R(ctx, 25, 6, 1, 1, K.dark);
-  R(ctx, 16, 3, 1, 4, K.dark);
-  R(ctx, 21, 3, 1, 1, K.eye); R(ctx, 21, 2, 1, 1, '#fff');
-  R(ctx, 22, 5, 1, 1, '#f2a7b5'); // ичимхий хацар ✿
-  // цагаан ороолт (салхинд намирна)
-  R(ctx, 16, 8, 6, 2, '#fffdf8');
-  const sf = state === 'run' ? Math.round(Math.sin(t * 20)) : 0;
-  R(ctx, 13, 8 + sf, 3, 1, '#fffdf8'); R(ctx, 11, 9 + sf, 3, 1, '#fffdf8');
-  // cherry берет
-  R(ctx, 17, 0, 7, 2, C.cherry); R(ctx, 16, 1, 9, 1, C.cherryDark); R(ctx, 20, -1, 1, 1, C.cherryDark);
+
+  ctx.translate(0, -bob);
+  // арын буржгар үс — мөр хүртэл унжсан, ирмэг нь долгионтой
+  R(ctx, 6, 2, 6, 8, G.hair); R(ctx, 5, 3, 1, 7, G.hair); R(ctx, 4, 5, 1, 4, G.hair);
+  R(ctx, 5 - sw, 10, 2, 2, G.hair); R(ctx, 8 - sw, 10, 2, 2, G.hair); R(ctx, 4 - sw, 9, 1, 2, G.hair);
+  R(ctx, 6 - sw, 12, 1, 1, G.hair); R(ctx, 9 - sw, 12, 1, 1, G.hair);
+  // даашинз (cherry) + цагаан зах
+  R(ctx, 11, 10, 7, 3, G.dress);
+  R(ctx, 10, 13, 9, 2, G.dress); R(ctx, 9, 15, 11, 1, G.dressSh);
+  R(ctx, 11, 12, 1, 3, G.dressSh);
+  R(ctx, 12, 9, 5, 1, G.collar); R(ctx, 14, 10, 1, 1, G.collar);
+  // гар + харандаа
+  R(ctx, 15 + sw, 10, 2, 1, G.dress); R(ctx, 15 + sw, 11, 2, 2, G.skin);
+  R(ctx, 17 + sw, 11, 3, 1, '#f2c14e'); R(ctx, 20 + sw, 11, 1, 1, G.eye); R(ctx, 16 + sw, 11, 1, 1, G.dressSh);
+  // хүзүү, нүүр
+  R(ctx, 14, 8, 2, 1, G.skinSh);
+  R(ctx, 13, 3, 5, 5, G.skin);
+  R(ctx, 18, 5, 1, 2, G.skin);                       // хамар/хацар
+  R(ctx, 16, 5, 1, 2, G.eye); R(ctx, 16, 4, 1, 1, '#fff');
+  R(ctx, 17, 7, 1, 1, G.blush);
+  // буржгар үсний гол хэсэг — дээд ирмэг нь бөөрөнхий «үүл» шиг
+  R(ctx, 8, 0, 10, 3, G.hair); R(ctx, 7, 1, 1, 4, G.hair); R(ctx, 9, 3, 4, 5, G.hair);
+  R(ctx, 9, -1, 2, 1, G.hair); R(ctx, 13, -1, 3, 1, G.hair); R(ctx, 18, 1, 1, 2, G.hair); R(ctx, 6, 1, 1, 1, G.hair);
+  R(ctx, 13, 3, 3, 1, G.hair); R(ctx, 17, 3, 1, 1, G.hair);     // хөмсөг дээрх буржгар унжлага
+  R(ctx, 12, 4, 1, 5, G.hair); R(ctx, 11, 8, 2, 2, G.hair);     // нүүрний хажуугийн буржгар
+  // буржгарын бүтэц: жижиг «c» хэлбэрийн гялбаанууд
+  for (const [hx, hy] of [[9, 0], [14, 0], [7, 3], [10, 4], [6, 6], [9, 7], [5, 9], [8, 10]]) {
+    R(ctx, hx, hy, 1, 1, G.hairHi); R(ctx, hx + 1, hy + 1, 1, 1, G.hairHi);
+  }
+  R(ctx, 16, 1, 1, 1, G.hairHi);
+  // cherry үсний хавчаар
+  R(ctx, 17, 2, 2, 1, C.cherry); R(ctx, 18, 1, 1, 1, C.sakuraDeep);
   ctx.restore();
 }
 

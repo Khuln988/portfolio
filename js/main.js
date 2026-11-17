@@ -142,7 +142,7 @@ function showFinish(stats) {
   $('#finish').showModal();
 }
 
-/* ---------- Нүүрний жижиг хулан (ажиллаж буй sprite) ---------- */
+/* ---------- Нүүрний жижиг баатар охин (гүйж буй sprite) ---------- */
 function spriteLoop() {
   const cvs = [$('#heroSprite'), $('#readSprite')].map((c) => {
     const x = c.getContext('2d');
@@ -176,7 +176,7 @@ function initEasterEggs() {
       const f = $('#flyover');
       f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
       sfx.secret();
-      toast(game.turbo ? 'ТУРБО ГОРИМ!' : 'Турбо унтарлаа', game.turbo ? 'Сакура сүүлтэй хурдан хулан 🌸' : '', '⚡', '#b3122e');
+      toast(game.turbo ? 'ТУРБО ГОРИМ!' : 'Турбо унтарлаа', game.turbo ? 'Сакура сүүлтэй хурдан зураач охин 🌸' : '', '⚡', '#b3122e');
     }
   });
   console.log('%c✎ Sketchbook Quest ', 'background:#b3122e;color:#fff;font:800 15px sans-serif;padding:6px 10px;border-radius:6px');
